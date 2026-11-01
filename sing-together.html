@@ -1,0 +1,1873 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="data:," />
+    <title>Sing Together</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --card: #ffffff;
+        --card-2: #f1f3f4;
+        --ink: #202124;
+        --muted: #5f6368;
+        --faint: #80868b;
+        --line: #dadce0;
+        --blue: #1a73e8;
+        --blue-strong: #1765cc;
+        --blue-soft: #e8f0fe;
+        --green: #188038;
+        --green-strong: #137333;
+        --green-soft: #e6f4ea;
+        --amber: #e37400;
+        --amber-soft: #fef7e0;
+        --red: #d93025;
+        --red-soft: #fce8e6;
+        --wave-hint: #ffffff;
+        --shadow: 0 1px 2px rgba(60, 64, 67, 0.12), 0 4px 16px rgba(60, 64, 67, 0.08);
+        --radius: 24px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #202124;
+          --card: #292a2d;
+          --card-2: #303134;
+          --ink: #e8eaed;
+          --muted: #9aa0a6;
+          --faint: #80868b;
+          --line: #3c4043;
+          --blue: #8ab4f8;
+          --blue-strong: #aecbfa;
+          --blue-soft: #2b3a55;
+          --green: #81c995;
+          --green-strong: #81c995;
+          --green-soft: #22382a;
+          --amber: #fdd663;
+          --amber-soft: #38301c;
+          --red: #f28b82;
+          --red-soft: #402826;
+          --wave-hint: #292a2d;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Roboto", "Avenir Next", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 18px 16px 40px; }
+
+      /* ---------- top bar ---------- */
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; padding: 4px 2px 16px;
+      }
+      .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+      .brand-mark {
+        width: 40px; height: 40px; flex: none; border-radius: 50%;
+        background: var(--blue); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+      }
+      @media (prefers-color-scheme: dark) { .brand-mark { color: #202124; } }
+      .brand-mark svg { width: 22px; height: 22px; }
+      .brand-name { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.1; }
+      .brand-name .c-b { color: #4285f4; }
+      .brand-name .c-r { color: #ea4335; }
+      .brand-name .c-y { color: #f9ab00; }
+      .brand-name .c-g { color: #34a853; }
+      @media (prefers-color-scheme: dark) { .brand-name .c-y { color: #fbbc04; } }
+      .brand-sub { font-size: 12.5px; color: var(--muted); line-height: 1.25; }
+      .status-pill {
+        flex: none; display: inline-flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 600; color: var(--muted);
+        background: var(--card); border: 1px solid var(--line);
+        padding: 8px 14px; border-radius: 999px;
+      }
+      .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
+      .status-pill.live { color: var(--blue-strong); border-color: var(--blue); }
+      .status-pill.live .status-dot { background: var(--blue); animation: pulse 1.6s ease-in-out infinite; }
+      .status-pill.demo { color: var(--amber); border-color: var(--amber); }
+      .status-pill.demo .status-dot { background: var(--amber); animation: pulse 1.6s ease-in-out infinite; }
+      .status-pill.error { color: var(--red); border-color: var(--red); }
+      .status-pill.error .status-dot { background: var(--red); }
+      @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.45); opacity: 0.55; } }
+      @media (prefers-reduced-motion: reduce) { .status-pill .status-dot { animation: none; } }
+
+      /* ---------- stage ---------- */
+      .stage {
+        position: relative; overflow: hidden;
+        background: var(--card); border: 1px solid var(--line); border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 30px 26px 118px;
+        min-height: 470px;
+      }
+      .listen-label {
+        font-size: clamp(26px, 4.6vw, 38px); font-weight: 700; letter-spacing: -0.02em;
+        line-height: 1.12; margin: 0;
+      }
+      .listen-sub { color: var(--muted); font-size: 15.5px; margin: 10px 0 0; max-width: 56ch; }
+      .note-row {
+        display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap;
+        margin-top: 26px;
+      }
+      .note-name {
+        font-size: clamp(72px, 15vw, 118px); font-weight: 800; line-height: 0.95;
+        letter-spacing: -0.03em; min-width: 2.1ch;
+        font-variant-numeric: tabular-nums;
+      }
+      .note-name.idle { visibility: hidden; color: var(--faint); font-weight: 300; font-size: clamp(52px, 10vw, 80px); padding-bottom: 10px; }
+      .note-side { padding-bottom: 14px; min-width: 170px; }
+      .note-freq { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .note-octave { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+      .meter { margin-top: 14px; }
+      .meter-track {
+        position: relative; height: 8px; border-radius: 99px;
+        background: var(--card-2); border: 1px solid var(--line);
+      }
+      .meter-track::before {
+        content: ""; position: absolute; left: 50%; top: -4px; bottom: -4px;
+        width: 2px; background: var(--faint); transform: translateX(-1px);
+      }
+      .meter-zone {
+        position: absolute; top: 0; bottom: 0; left: 42%; right: 42%;
+        background: var(--green); opacity: 0.35; border-radius: 99px;
+      }
+      .cents-marker {
+        position: absolute; top: 50%; left: 50%;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: var(--green); border: 3px solid var(--card);
+        box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+        transform: translate(-50%, -50%);
+        transition: left 90ms linear, background 150ms ease;
+      }
+      .cents-marker.off { background: var(--amber); }
+      .cents-marker.far { background: var(--red); }
+      .meter-labels {
+        display: flex; justify-content: space-between;
+        font-size: 11.5px; color: var(--faint); margin-top: 6px; font-weight: 600;
+      }
+      .tune-text { font-size: 13.5px; font-weight: 600; color: var(--muted); margin-top: 8px; min-height: 20px; }
+      .tune-text.good { color: var(--green-strong); }
+      #contour {
+        display: block; width: 100%; height: 118px; margin-top: 22px;
+        background: var(--card-2); border: 1px solid var(--line); border-radius: 14px;
+      }
+      .partner-line {
+        margin-top: 16px; display: flex; align-items: center; gap: 10px;
+        font-size: 15px; font-weight: 600;
+      }
+      .partner-line .pdot {
+        width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none;
+        transition: background 150ms ease;
+      }
+      .partner-line.singing .pdot { background: var(--blue); animation: pulse 1.2s ease-in-out infinite; }
+      .partner-line .quiet { color: var(--muted); font-weight: 500; }
+      #wave {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        width: 100%; height: 104px; pointer-events: none;
+      }
+
+      /* ---------- controls ---------- */
+      .controls {
+        display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px;
+      }
+      .btn {
+        appearance: none; border: 1px solid var(--line); cursor: pointer;
+        background: var(--card); color: var(--ink);
+        font: inherit; font-weight: 700; font-size: 16px;
+        min-height: 56px; padding: 12px 22px; border-radius: 999px;
+        display: inline-flex; align-items: center; gap: 10px;
+        transition: background 150ms ease, border-color 150ms ease, transform 60ms ease;
+      }
+      .btn:active { transform: scale(0.985); }
+      .btn svg { width: 21px; height: 21px; flex: none; }
+      .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; flex: 1 1 260px; justify-content: center; }
+      @media (prefers-color-scheme: dark) { .btn.primary { color: #202124; } }
+      .btn.primary:hover { background: var(--blue-strong); }
+      .btn.primary.stop { background: var(--red); border-color: var(--red); color: #fff; }
+      .btn.ghost { color: var(--blue-strong); }
+      .btn.ghost:hover { background: var(--blue-soft); border-color: var(--blue); }
+      .btn.toggle.on { background: var(--blue-soft); color: var(--blue-strong); border-color: var(--blue); }
+      .btn[disabled] { opacity: 0.45; cursor: default; }
+      .btn:focus-visible, .seg-btn:focus-visible, select:focus-visible, input:focus-visible {
+        outline: 3px solid var(--blue); outline-offset: 2px;
+      }
+      .mic-note { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
+      .mic-note.error { color: var(--red); font-weight: 600; }
+
+      /* ---------- cards grid ---------- */
+      .grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px;
+      }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+      .card {
+        background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 22px; box-shadow: var(--shadow);
+      }
+      .card h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
+      .card .lede { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+      .field-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 18px 0 8px; letter-spacing: 0.02em; }
+      .field-label:first-of-type { margin-top: 4px; }
+      .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+      .seg-btn {
+        appearance: none; cursor: pointer; font: inherit; font-size: 14.5px; font-weight: 600;
+        padding: 10px 16px; min-height: 46px; border-radius: 999px;
+        background: var(--card-2); color: var(--ink); border: 1px solid var(--line);
+        transition: background 130ms ease, color 130ms ease, border-color 130ms ease;
+      }
+      .seg-btn.active { background: var(--blue-soft); border-color: var(--blue); color: var(--blue-strong); font-weight: 700; }
+      .style-desc {
+        margin-top: 12px; font-size: 14px; color: var(--muted);
+        background: var(--blue-soft); border-radius: 12px; padding: 12px 14px;
+      }
+      select {
+        width: 100%; font: inherit; font-size: 15.5px; padding: 12px 14px; min-height: 50px;
+        border-radius: 12px; border: 1px solid var(--line);
+        background: var(--card); color: var(--ink);
+      }
+      .range-row { display: flex; align-items: center; gap: 14px; }
+      input[type="range"] { flex: 1; accent-color: var(--blue); height: 34px; }
+      .range-val { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+
+      .detect-style { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+      .detect-reason { color: var(--muted); font-size: 14.5px; margin-top: 8px; min-height: 44px; }
+      .metrics { margin-top: 14px; border-top: 1px solid var(--line); }
+      .metric {
+        display: flex; justify-content: space-between; gap: 14px;
+        padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14.5px;
+      }
+      .metric:last-child { border-bottom: 0; }
+      .metric .k { color: var(--muted); }
+      .metric .v { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+
+      .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; margin-top: 6px; }
+      .stat .num { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+      .stat .lab { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+      .reset-link {
+        margin-top: 18px; appearance: none; background: none; border: 0; cursor: pointer;
+        font: inherit; font-size: 13.5px; font-weight: 700; color: var(--muted);
+        padding: 8px 0; text-decoration: underline; text-underline-offset: 3px;
+      }
+      .reset-link:hover { color: var(--ink); }
+
+      .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+      .steps li { display: flex; gap: 13px; padding: 9px 0; font-size: 14.5px; }
+      .steps li::before {
+        counter-increment: step; content: counter(step);
+        flex: none; width: 26px; height: 26px; border-radius: 50%;
+        background: var(--blue-soft); color: var(--blue-strong);
+        font-size: 13.5px; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; margin-top: 1px;
+      }
+      .steps b { display: block; }
+      .steps span { color: var(--muted); }
+      .privacy-note {
+        margin-top: 14px; font-size: 13.5px; color: var(--muted);
+        background: var(--card-2); border-radius: 12px; padding: 12px 14px;
+      }
+      .privacy-note b { color: var(--ink); }
+
+      footer { margin-top: 28px; text-align: center; color: var(--faint); font-size: 13px; }
+
+      /* ---------- song library ---------- */
+      .card.span { grid-column: 1 / -1; }
+      .btn.small { min-height: 46px; font-size: 14.5px; padding: 10px 18px; }
+      .btn[hidden] { display: none; }
+      .recog { background: var(--blue-soft); border-radius: 16px; padding: 16px 18px; margin-bottom: 20px; }
+      .recog-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .recog-badge { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue-strong); }
+      .recog-state { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+      .recog-title { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; margin-top: 8px; }
+      .recog-text { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+      .recog-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+      .code-first { font-size: 12.5px; font-weight: 800; color: var(--green-strong); margin-top: 8px; letter-spacing: 0.01em; }
+      .btn.try-again {
+        min-height: 60px; font-size: 17px; padding: 14px 26px;
+        background: var(--amber-soft); border-color: var(--amber); color: var(--ink);
+      }
+      .btn.try-again[hidden] { display: none; }
+      .lib-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+      .lib-count { font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; }
+      .offline-chip { font-size: 12px; font-weight: 800; color: var(--green-strong); background: var(--green-soft); border-radius: 999px; padding: 5px 11px; }
+      .song-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+      .song-row:last-of-type { border-bottom: 0; }
+      .song-title { font-size: 16.5px; font-weight: 800; }
+      .song-meta { font-size: 13px; color: var(--muted); }
+      .song-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .chip { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--card-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+      .chip.style { color: var(--green-strong); border-color: var(--green); background: var(--green-soft); }
+      .song-chords { font-size: 13px; color: var(--muted); margin-top: 7px; }
+      .song-play { flex: none; }
+      @media (max-width: 560px) {
+        .song-row { flex-direction: column; align-items: stretch; }
+        .song-play { justify-content: center; }
+      }
+      .grow-box { margin-top: 18px; border: 1.5px dashed var(--faint); border-radius: 14px; padding: 16px 18px; }
+      .grow-title { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .grow-tag { font-size: 11.5px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: var(--amber); background: var(--amber-soft); padding: 4px 9px; border-radius: 999px; }
+      .grow-box p { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+
+      /* ---------- floating real notes (background layers) ---------- */
+      #notesBg {
+        position: fixed; inset: 0; width: 100%; height: 100%;
+        z-index: 0; pointer-events: none;
+      }
+      .wrap { position: relative; z-index: 1; }
+      .stage-notes {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        z-index: 0; pointer-events: none;
+      }
+      .stage > h1, .stage > p, .stage > .note-row, .stage > #contour, .stage > .partner-line {
+        position: relative; z-index: 1;
+      }
+
+      /* ---------- Google Assistant-style listening dots ---------- */
+      .g-dots {
+        position: absolute; left: 50%; bottom: 112px; transform: translateX(-50%);
+        display: flex; gap: 10px; align-items: center; z-index: 2; pointer-events: none;
+      }
+      .g-dots span {
+        width: 11px; height: 11px; border-radius: 50%; flex: none;
+        transition: transform 110ms ease-out, opacity 200ms ease;
+        opacity: 0.45;
+      }
+      .g-dots span:nth-child(1) { background: #4285f4; }
+      .g-dots span:nth-child(2) { background: #ea4335; }
+      .g-dots span:nth-child(3) { background: #fbbc04; }
+      .g-dots span:nth-child(4) { background: #34a853; }
+      .g-dots.on span { opacity: 1; }
+      body.car .g-dots { bottom: 122px; }
+
+      /* ---------- car mode ---------- */
+      body.car { font-size: 18px; }
+      body.car .stage { padding-bottom: 128px; }
+      body.car .note-name { font-size: clamp(96px, 20vw, 150px); }
+      body.car .listen-label { font-size: clamp(32px, 6vw, 46px); }
+      body.car .btn { min-height: 72px; font-size: 19px; padding: 16px 28px; }
+      body.car .seg-btn { min-height: 58px; font-size: 17px; padding: 14px 20px; }
+      body.car select { min-height: 60px; font-size: 18px; }
+      body.car .how-card, body.car footer { display: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="notesBg" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <div>
+            <div class="brand-name"><span class="c-b">S</span><span class="c-r">i</span><span class="c-y">n</span><span class="c-b">g</span> <span class="c-g">T</span><span class="c-r">o</span><span class="c-y">g</span><span class="c-b">e</span><span class="c-g">t</span><span class="c-r">h</span><span class="c-y">e</span><span class="c-g">r</span></div>
+            <div class="brand-sub">A live grand piano &amp; bass partner, right in your browser</div>
+          </div>
+        </div>
+        <div class="status-pill" id="statusPill"><span class="status-dot"></span><span id="statusText">Ready</span></div>
+      </div>
+
+      <section class="stage" aria-label="Listening stage">
+        <canvas class="stage-notes" id="notesStage" aria-hidden="true"></canvas>
+        <h1 class="listen-label" id="listenLabel">Ready when you are</h1>
+        <p class="listen-sub" id="listenSub">Tap <b>Start</b>, allow the microphone, and sing any note. Sing Together hears the note and names it live. When a library song is recognised, a grand piano opens with the song over a steady beat — and the bass guitar joins in the second time around.</p>
+
+        <div class="note-row">
+          <div class="note-name idle" id="noteName"></div>
+          <div class="note-side">
+            <div class="note-freq" id="noteFreq">No note yet</div>
+            <div class="note-octave" id="noteOctave">Your pitch will appear here as you sing</div>
+            <div class="meter" id="tuneMeter" aria-hidden="true" style="display:none">
+              <div class="meter-track">
+                <div class="meter-zone"></div>
+                <div class="cents-marker" id="centsMarker"></div>
+              </div>
+              <div class="meter-labels"><span>♭ FLAT</span><span>IN TUNE</span><span>SHARP ♯</span></div>
+            </div>
+            <div class="tune-text" id="tuneText">&nbsp;</div>
+          </div>
+        </div>
+
+        <canvas id="contour" aria-label="The melody line of what you are singing"></canvas>
+
+        <div class="partner-line" id="partnerLine">
+          <span class="pdot"></span>
+          <span id="partnerText"><span class="quiet">The piano and bass are silent — they only play when a real library song is under way.</span></span>
+        </div>
+
+        <canvas id="wave" aria-hidden="true"></canvas>
+        <div class="g-dots" id="gDots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      </section>
+
+      <div class="controls">
+        <button class="btn primary" id="btnStart" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <span id="btnStartText">Start singing together</span>
+        </button>
+        <button class="btn ghost" id="btnDemo" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/></svg>
+          <span>Hear a demo tune</span>
+        </button>
+        <button class="btn ghost toggle" id="btnCar" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H8.2c-.8 0-1.5.4-1.9 1.1L4.6 11l-2.1.3C1.6 11.4 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+          <span>Car mode</span>
+        </button>
+      </div>
+      <p class="mic-note" id="micNote">The microphone is only used while you are singing, and the sound is analysed on this device — it is never recorded or sent anywhere.</p>
+
+      <div class="grid">
+        <section class="card" aria-label="Duet settings">
+          <h2>Your accompaniment settings</h2>
+          <p class="lede">Shape the piano &amp; bass accompaniment before you sing — or while you sing. Changes apply live. The instruments only play while a real library song is under way.</p>
+
+          <span class="field-label" id="styleLabel">ACCOMPANIMENT STYLE</span>
+          <div class="seg" role="group" aria-labelledby="styleLabel" id="styleSeg">
+            <button class="seg-btn active" type="button" data-style="auto">Auto-detect</button>
+            <button class="seg-btn" type="button" data-style="bass">Bass focus</button>
+            <button class="seg-btn" type="button" data-style="relaxed">Relaxed</button>
+            <button class="seg-btn" type="button" data-style="bright">Bright pop</button>
+            <button class="seg-btn" type="button" data-style="duet">Side-by-side</button>
+          </div>
+          <div class="style-desc" id="styleDesc">Auto-detect reads your range, your pace and how long you hold each note, then picks the accompaniment style that fits the song you are singing.</div>
+
+          <label class="field-label" for="volRange">ACCOMPANIMENT VOLUME</label>
+          <div class="range-row">
+            <input type="range" id="volRange" min="0" max="100" value="80" />
+            <span class="range-val" id="volVal">80%</span>
+          </div>
+        </section>
+
+        <section class="card" aria-label="What Sing Together hears">
+          <h2>What Sing Together hears</h2>
+          <p class="lede">A live read of your singing, updated as you go.</p>
+          <div class="detect-style" id="detectStyle">Waiting for your first notes</div>
+          <div class="detect-reason" id="detectReason">Sing a few notes and this panel will name the style of the song, the key you are centred on, and how the piano &amp; bass accompaniment is set to match it.</div>
+          <div class="metrics">
+            <div class="metric"><span class="k">Your range so far</span><span class="v" id="mRange">—</span></div>
+            <div class="metric"><span class="k">Average note length</span><span class="v" id="mAvgNote">—</span></div>
+            <div class="metric"><span class="k">Pace</span><span class="v" id="mTempo">—</span></div>
+            <div class="metric"><span class="k">Home key</span><span class="v" id="mKey">—</span></div>
+            <div class="metric"><span class="k">Accompaniment</span><span class="v" id="mPartner">—</span></div>
+          </div>
+        </section>
+
+        <section class="card span" aria-label="Song library">
+          <h2>Song library</h2>
+          <p class="lede">Songs this page knows by heart — each one stored as light note data only (title, style, tempo, key, the melody as a sequence of notes, and its chord pattern), never as heavy audio files. The whole library lives inside this page, so it works with no connection at all once the page has loaded — in the car, anywhere.</p>
+
+          <div class="recog" id="recogBox">
+            <div class="recog-head">
+              <span class="recog-badge">Recognize my song</span>
+              <span class="recog-state" id="recogState">Not listening</span>
+            </div>
+            <div class="code-first">Powered by smart code on your device — no AI · works offline</div>
+            <div class="recog-title" id="recogTitle">Sing a song — I'll try to name it</div>
+            <p class="recog-text" id="recogText">Start singing with the microphone on. Your notes are compared against the library by the gaps between the notes and their rhythm — plain on-device maths, no AI model, no server — so it works in any key you choose to sing in.</p>
+            <div class="recog-actions">
+              <button class="btn try-again" id="btnTryAgain" type="button" hidden>&#8635; Try again</button>
+              <button class="btn small primary" id="btnFollow" type="button" hidden>Open &amp; follow this song</button>
+              <button class="btn small ghost" id="btnNotSong" type="button" hidden>Not this song</button>
+              <button class="btn small ghost" id="btnStopFollow" type="button" hidden>Stop following</button>
+            </div>
+          </div>
+
+          <div class="lib-head">
+            <span class="lib-count">STARTER LIBRARY — <span id="songCount">5</span> SONGS, BAKED INTO THIS PAGE</span>
+            <span class="offline-chip">Works offline</span>
+          </div>
+          <div id="songList"></div>
+
+          <div class="lib-head" style="margin-top:24px">
+            <span class="lib-count">YOUR SONGS — NEGINEI LEIL SHABBOS · <span id="ownerSongCount">3</span> SONGS</span>
+            <span class="offline-chip">Works offline</span>
+          </div>
+          <p class="song-meta" style="margin:2px 0 4px">Your own songs, converted from your recordings into light note data. Honest label: these are <b>first-pass melody sketches</b> — the converter followed the main tune and rhythm of each recording, so they are real enough for the page to recognise the song and for the piano to follow it, but they are sketches, not perfect transcriptions. The piano's harmony is derived from each song's key centre, the same way as the starter songs.</p>
+          <div id="ownerSongList"></div>
+
+          <div class="grow-box">
+            <div class="grow-title">Back-end library — how it grows <span class="grow-tag">Placeholder · later stage</span></div>
+            <p>This starter library is deliberately small, and every song in it is a real public-domain or traditional melody written out as note data. The full library will be built from a link or source the owner supplies, holding most of the songs. Each song gets converted the same lightweight way — title, style tag, tempo, key, melody as a note sequence, and its chord pattern, with no audio files at all — then the library is downloaded once and cached on the device, so even the full library keeps working offline. That back-end stage comes later; nothing about it is faked here.</p>
+          </div>
+        </section>
+
+        <section class="card" aria-label="This session">
+          <h2>This session</h2>
+          <p class="lede">Everything on this page belongs to this visit only — it clears when the tab closes.</p>
+          <div class="stats-grid">
+            <div class="stat"><div class="num" id="stTime">0:00</div><div class="lab">Time singing</div></div>
+            <div class="stat"><div class="num" id="stNotes">0</div><div class="lab">Notes you sang</div></div>
+            <div class="stat"><div class="num" id="stRange">—</div><div class="lab">Your range</div></div>
+            <div class="stat"><div class="num" id="stLong">0.0s</div><div class="lab">Longest held note</div></div>
+            <div class="stat"><div class="num" id="stKey">—</div><div class="lab">Home key</div></div>
+            <div class="stat"><div class="num" id="stPartner">0</div><div class="lab">Accompaniment notes</div></div>
+          </div>
+          <button class="reset-link" id="btnReset" type="button">Reset session</button>
+        </section>
+
+        <section class="card how-card" aria-label="How it works">
+          <h2>How it works</h2>
+          <p class="lede">Three steps, all inside this one page.</p>
+          <ol class="steps">
+            <li><div><b>You sing</b><span>Any song, any key — hum it, belt it, or sing it softly in the car.</span></div></li>
+            <li><div><b>It understands the notes</b><span>Your pitch is measured many times a second, named as a note, and read for style: range, pace, and how long you hold each note.</span></div></li>
+            <li><div><b>The band joins the song</b><span>When a library song is recognised, the grand piano opens with its melody and chords over a steady beat — and the bass guitar comes in the second time around. No song recognised, no noise: the instruments stay silent.</span></div></li>
+          </ol>
+          <div class="privacy-note"><b>Private by design:</b> listening, note detection and the piano &amp; bass accompaniment all run locally in your own browser. Nothing you sing is recorded, uploaded, or visible to anyone else — every visitor's session is theirs alone. The grand piano and bass guitar are synthesised live on your device — no recordings, no AI.</div>
+        </section>
+      </div>
+
+      <footer>Sing Together — sing a line, the piano joins in.</footer>
+    </div>
+
+    <script>
+(function () {
+  "use strict";
+
+  /* ================= note helpers ================= */
+  var NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+  function freqFromMidi(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function midiFromFreq(f) { return 69 + 12 * Math.log2(f / 440); }
+  function noteName(midi) { return NOTE_NAMES[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1); }
+  function fmtTime(sec) { var m = Math.floor(sec / 60), s = Math.floor(sec % 60); return m + ":" + (s < 10 ? "0" : "") + s; }
+  function el(id) { return document.getElementById(id); }
+
+  /* ================= accompaniment styles =================
+     These shape the grand piano + bass guitar accompaniment (which plays
+     only while a real library song is under way). */
+  var STYLES = {
+    bass: {
+      label: "Bass focus", piano: 1.0, chord: 0.6, bass: 1.0, kick: 0.65, hat: 0.13, shake: 0.09, gentle: false, bouncy: false,
+      desc: "Bass focus — when a library song plays, the bass guitar comes in stronger and joins earlier, under a full grand piano and a solid beat."
+    },
+    relaxed: {
+      label: "Relaxed", piano: 0.68, chord: 0.5, bass: 0.6, kick: 0.3, hat: 0, shake: 0.07, gentle: true, bouncy: false,
+      desc: "Relaxed — a softer grand piano and a gentler beat when a library song plays; the bass guitar still joins the second time around, quietly."
+    },
+    bright: {
+      label: "Bright pop", piano: 1.05, chord: 0.6, bass: 0.85, kick: 0.45, hat: 0.14, shake: 0.08, gentle: false, bouncy: true,
+      desc: "Bright pop — a lighter, bouncier beat under the piano when a library song plays, with the bass guitar joining the second time around."
+    },
+    duet: {
+      label: "Side-by-side duet", piano: 1.12, chord: 0.42, bass: 0.85, kick: 0.5, hat: 0.12, shake: 0.09, gentle: false, bouncy: false,
+      desc: "Side-by-side — the piano plays the song's melody out front alongside you, chords kept light, with a steady beat and the bass guitar joining the second time around."
+    }
+  };
+  var AUTO_DESC = "Auto-detect reads your range, your pace and how long you hold each note, then picks the accompaniment style that fits the song you are singing.";
+
+  /* ================= state (this tab only — nothing is stored) ================= */
+  var S = {
+    mode: "idle",               // idle | live | demo
+    styleMode: "auto",          // auto | bass | relaxed | bright | duet
+    activeStyle: "relaxed",
+    harmony: "auto",
+    partnerVol: 0.8,
+    ctx: null, analyser: null, micStream: null, timeBuf: null, decBuf: null, corrBuf: null,
+    partner: null, demoSinger: null, demo: null,
+    bus: null, noiseBuf: null, accomp: null,
+    level: 0, freq: 0, clarity: 0, midiSmooth: null,
+    midiFloatHist: [],
+    stableMidi: null, candidateMidi: null, candidateSince: 0,
+    noteStart: 0, currentNoteDur: 0,
+    sessionStartPerf: null,
+    singSeconds: 0, notesSung: 0, partnerNotes: 0,
+    minMidi: null, maxMidi: null, longestNote: 0,
+    pitchCounts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    durations: [], noteStartTimes: [],
+    contour: [],
+    partnerMidi: null, partnerSemis: 4, partnerSounding: false,
+    pendingStyle: null, pendingCount: 0,
+    lastDetectAt: 0, lastStatsAt: 0, lastMetrics: null,
+    frame: 0, _pTxt: null
+  };
+
+  var ui = {};
+  ["statusPill", "statusText", "listenLabel", "listenSub", "noteName", "noteFreq", "noteOctave",
+   "centsMarker", "tuneText", "tuneMeter", "partnerLine", "partnerText", "btnStart", "btnStartText", "btnDemo",
+   "btnCar", "micNote", "styleSeg", "styleDesc", "volRange", "volVal", "gDots",
+   "detectStyle", "detectReason", "mRange", "mAvgNote", "mTempo", "mKey", "mPartner",
+   "stTime", "stNotes", "stRange", "stLong", "stKey", "stPartner", "btnReset",
+   "wave", "contour"].forEach(function (id) { ui[id] = el(id); });
+
+  var DEFAULT_SUB_HTML = ui.listenSub.innerHTML;
+  var DEFAULT_MIC_TEXT = ui.micNote.textContent;
+  var DARKQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : { matches: false };
+  var REDUCED = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false;
+
+  function setStatus(cls, text) {
+    ui.statusPill.className = "status-pill" + (cls ? " " + cls : "");
+    ui.statusText.textContent = text;
+  }
+
+  /* ================= audio: accompaniment bus =================
+     No partner voice any more. The accompaniment is real instruments
+     synthesised on-device with WebAudio — a grand piano, a bass guitar
+     and a light beat — and it plays ONLY while a real library song is
+     under way (recognised & followed, or played from the library). */
+  function makeImpulse(ctx, dur, decay) {
+    var rate = ctx.sampleRate, len = Math.floor(rate * dur);
+    var buf = ctx.createBuffer(2, len, rate);
+    for (var ch = 0; ch < 2; ch++) {
+      var d = buf.getChannelData(ch);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
+
+  function ensureCtx() {
+    if (S.ctx) return S.ctx;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    var ctx = new AC();
+    S.ctx = ctx;
+
+    var master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+
+    var accomp = ctx.createGain(); accomp.gain.value = S.partnerVol * 0.9;
+    accomp.connect(master);
+    var conv = ctx.createConvolver(); conv.buffer = makeImpulse(ctx, 1.7, 2.6);
+    var wet = ctx.createGain(); wet.gain.value = 0.22;
+    conv.connect(wet); wet.connect(master);
+
+    var nlen = ctx.sampleRate;
+    var nbuf = ctx.createBuffer(1, nlen, ctx.sampleRate);
+    var nd = nbuf.getChannelData(0);
+    for (var i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+    S.noiseBuf = nbuf;
+
+    S.bus = { master: master, accomp: accomp, verbIn: conv };
+    return ctx;
+  }
+
+  /* ================= the instruments ================= */
+  function pianoNote(midi, t, dur, vel) {
+    var ctx = S.ctx; if (!ctx || !S.bus || vel <= 0.001) return;
+    var f = freqFromMidi(midi);
+    var g = ctx.createGain();
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+    lp.frequency.value = Math.min(6800, 900 + f * 4.2); lp.Q.value = 0.3;
+    g.connect(lp); lp.connect(S.bus.accomp); lp.connect(S.bus.verbIn);
+    var end = t + Math.max(0.6, dur * 1.15 + 0.55);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vel * 0.38), t + 0.28);
+    g.gain.exponentialRampToValueAtTime(0.0008, end);
+    var parts = [[1, 1.0, "sine"], [1, 0.34, "triangle"], [2, 0.5, "sine"], [3, 0.2, "sine"], [4, 0.09, "sine"]];
+    for (var i = 0; i < parts.length; i++) {
+      var o = ctx.createOscillator(); o.type = parts[i][2]; o.frequency.value = f * parts[i][0];
+      var og = ctx.createGain(); og.gain.value = parts[i][1];
+      o.connect(og); og.connect(g);
+      o.start(t); o.stop(end + 0.05);
+    }
+  }
+  function bassNote(midi, t, dur, vel) {
+    var ctx = S.ctx; if (!ctx || !S.bus || vel <= 0.001) return;
+    var f = freqFromMidi(midi);
+    var g = ctx.createGain();
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 540; lp.Q.value = 0.6;
+    g.connect(lp); lp.connect(S.bus.accomp);
+    var end = t + Math.max(0.3, dur);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.009);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001, vel * 0.42), t + 0.16);
+    g.gain.setValueAtTime(Math.max(0.001, vel * 0.42), Math.max(t + 0.17, end - 0.07));
+    g.gain.exponentialRampToValueAtTime(0.0008, end + 0.05);
+    var o1 = ctx.createOscillator(); o1.type = "sawtooth"; o1.frequency.value = f; o1.detune.value = -4;
+    var og1 = ctx.createGain(); og1.gain.value = 0.55;
+    var o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = f;
+    var og2 = ctx.createGain(); og2.gain.value = 0.85;
+    o1.connect(og1); og1.connect(g); o2.connect(og2); og2.connect(g);
+    o1.start(t); o1.stop(end + 0.1); o2.start(t); o2.stop(end + 0.1);
+  }
+  function kickHit(t, vel) {
+    var ctx = S.ctx; if (!ctx || !S.bus || vel <= 0.001) return;
+    var o = ctx.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(155, t);
+    o.frequency.exponentialRampToValueAtTime(47, t + 0.1);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(vel, t);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + 0.16);
+    o.connect(g); g.connect(S.bus.accomp);
+    o.start(t); o.stop(t + 0.2);
+  }
+  function noiseHit(t, vel, type, freq, dur) {
+    var ctx = S.ctx; if (!ctx || !S.bus || !S.noiseBuf || vel <= 0.001) return;
+    var src = ctx.createBufferSource(); src.buffer = S.noiseBuf;
+    src.playbackRate.value = 0.9 + Math.random() * 0.2;
+    var flt = ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = freq; flt.Q.value = 0.9;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(vel, t);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    src.connect(flt); flt.connect(g); g.connect(S.bus.accomp);
+    src.start(t, Math.random() * 0.4); src.stop(t + dur + 0.05);
+  }
+  function hatHit(t, vel) { noiseHit(t, vel, "highpass", 7600, 0.055); }
+  function shakeHit(t, vel) { noiseHit(t, vel, "bandpass", 5800, 0.1); }
+
+  /* ================= accompaniment scheduler =================
+     A lookahead scheduler walks the song's stored melody at its stored
+     tempo: grand piano plays the melody plus the song's chords, a steady
+     beat runs underneath, and from the second pass (second time around)
+     the bass guitar joins and stays. Transposed to the singer's key when
+     following live. */
+  var CHORD_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  function parseChords(song) {
+    var out = [];
+    var toks = String(song.chords || "C").split("·");
+    for (var i = 0; i < toks.length; i++) {
+      var tk = toks[i].trim();
+      var m = /^([A-G])([#♯])?(b|♭)?/.exec(tk);
+      if (!m) continue;
+      var pc = CHORD_PC[m[1]];
+      if (m[2]) pc += 1;
+      if (m[3]) pc -= 1;
+      pc = ((pc % 12) + 12) % 12;
+      var rest = tk.slice(m[0].length);
+      out.push({ pc: pc, minor: /^m(?!aj)/.test(rest) });
+    }
+    if (!out.length) out.push({ pc: 0, minor: false });
+    return out;
+  }
+  function chordRootMidi(ch) {
+    var base = 48 + ch.pc;
+    if (base >= 57) base -= 12;
+    return base;
+  }
+  function startAccomp(song, startStep, offsetMidi, startTime) {
+    if (!S.ctx || !song) return;
+    var cum = [0];
+    for (var i = 0; i < song.notes.length; i++) cum.push(cum[i] + song.beats[i]);
+    var step = Math.max(0, Math.min(song.notes.length - 1, startStep || 0));
+    S.accomp = {
+      song: song, offset: offsetMidi || 0, step: step, pass: 1,
+      beatInPass: cum[step], globalBeat: cum[step],
+      nextTime: startTime || (S.ctx.currentTime + 0.15),
+      cum: cum, totalBeats: cum[cum.length - 1],
+      bar: song.bar || 4, chords: parseChords(song)
+    };
+    S.partnerMidi = null;
+  }
+  function stopAccomp() {
+    S.accomp = null;
+    S.partnerMidi = null;
+  }
+  function bassActive(A) {
+    if (!A) return false;
+    if (A.pass >= 2) return true;
+    return S.activeStyle === "bass" && A.pass === 1 && A.step >= A.song.notes.length / 2;
+  }
+  function scheduleStep(A) {
+    var ctx = S.ctx, song = A.song, cfg = STYLES[S.activeStyle];
+    var spb = 60 / song.bpm;
+    var i = A.step, durBeats = song.beats[i], dur = durBeats * spb, t = A.nextTime;
+    var midi = song.notes[i] + A.offset;
+    pianoNote(midi, t, Math.max(dur, 0.4), 0.27 * cfg.piano);
+    S.partnerMidi = midi;
+    S.partnerNotes++;
+    var startBeat = A.globalBeat, endBeat = startBeat + durBeats;
+    for (var hb = Math.ceil(startBeat * 2 - 1e-6) / 2; hb < endBeat - 1e-6; hb += 0.5) {
+      var bt = t + (hb - startBeat) * spb;
+      var isBeat = Math.abs(hb - Math.round(hb)) < 1e-6;
+      if (!isBeat) {
+        if (cfg.bouncy) hatHit(bt, cfg.hat * 0.7);
+        continue;
+      }
+      var bn = Math.round(hb);
+      var inBar = ((bn % A.bar) + A.bar) % A.bar;
+      var ch = A.chords[Math.floor(bn / A.bar) % A.chords.length];
+      var root = chordRootMidi(ch);
+      if (inBar === 0) {
+        var barDur = A.bar * spb * 0.92;
+        pianoNote(root + A.offset, bt, barDur, 0.13 * cfg.chord);
+        pianoNote(root + (ch.minor ? 3 : 4) + A.offset, bt, barDur, 0.11 * cfg.chord);
+        pianoNote(root + 7 + A.offset, bt, barDur, 0.10 * cfg.chord);
+        if (bassActive(A)) { bassNote(root - 12 + A.offset, bt, A.bar * spb * 0.5, 0.5 * cfg.bass); S.partnerNotes++; }
+        kickHit(bt, cfg.kick);
+      } else {
+        if (!cfg.gentle) hatHit(bt, cfg.hat);
+        else shakeHit(bt, cfg.shake);
+        if (inBar === 2 && A.bar >= 4) {
+          kickHit(bt, cfg.kick * 0.6);
+          if (bassActive(A)) { bassNote(root + 7 - 12 + A.offset, bt, spb * 0.8, 0.38 * cfg.bass); S.partnerNotes++; }
+        }
+      }
+      if (!cfg.gentle && inBar !== 0) shakeHit(bt + spb * 0.5, cfg.shake * 0.6);
+    }
+    A.beatInPass += durBeats;
+    A.globalBeat += durBeats;
+    A.nextTime += dur;
+    A.step++;
+    if (A.step >= song.notes.length) {
+      A.step = 0;
+      A.pass++;
+      A.beatInPass -= A.totalBeats;
+    }
+  }
+  function accompTick() {
+    var A = S.accomp;
+    if (!A || !S.ctx) return;
+    var ahead = S.ctx.currentTime + 0.18, guard = 0;
+    while (A.nextTime < ahead && guard++ < 96) scheduleStep(A);
+  }
+
+  /* ================= key / harmony maths ================= */
+  function tonicPc() {
+    var total = 0, best = -1, bi = null;
+    for (var i = 0; i < 12; i++) {
+      total += S.pitchCounts[i];
+      if (S.pitchCounts[i] > best) { best = S.pitchCounts[i]; bi = i; }
+    }
+    return total >= 2 ? bi : null;
+  }
+  function isMinorFeel() {
+    var t = tonicPc(); if (t === null) return false;
+    var c3 = S.pitchCounts[(t + 3) % 12], c4 = S.pitchCounts[(t + 4) % 12];
+    return (c3 + c4) >= 1.2 && c3 > c4 * 1.15;
+  }
+  function keyLabel() {
+    var t = tonicPc(); if (t === null) return null;
+    return NOTE_NAMES[t] + (isMinorFeel() ? " · minor feel" : " · major feel");
+  }
+  /* ================= pitch detection (autocorrelation, on-device) ================= */
+  function detectPitch() {
+    var an = S.analyser; if (!an) return;
+    an.getFloatTimeDomainData(S.timeBuf);
+    var buf = S.timeBuf, N = buf.length, step = 2, M = Math.floor(N / step);
+    var rms = 0, i, j, lag;
+    for (i = 0; i < N; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / N);
+    S.level = rms;
+    if (rms < 0.012) { S.freq = 0; S.clarity = 0; return; }
+    var x = S.decBuf;
+    for (i = 0; i < M; i++) x[i] = buf[i * step];
+    var sr = an.context.sampleRate / step;
+    var maxLag = Math.min(M - 1, Math.floor(sr / 55));
+    var minLag = Math.max(2, Math.floor(sr / 1200));
+    var corr = S.corrBuf;
+    for (lag = 0; lag <= maxLag; lag++) {
+      var sum = 0;
+      for (j = 0; j < M - lag; j++) sum += x[j] * x[j + lag];
+      corr[lag] = sum;
+    }
+    var d = minLag;
+    while (d < maxLag && corr[d] > corr[d + 1]) d++;
+    var best = -1, bestLag = -1;
+    for (i = d; i <= maxLag; i++) { if (corr[i] > best) { best = corr[i]; bestLag = i; } }
+    if (bestLag < 0 || corr[0] <= 0) { S.freq = 0; S.clarity = 0; return; }
+    var clarity = best / corr[0];
+    var shift = 0;
+    if (bestLag > 0 && bestLag < maxLag) {
+      var a = corr[bestLag - 1], b = corr[bestLag], c2 = corr[bestLag + 1];
+      var den = a - 2 * b + c2;
+      if (den !== 0) shift = 0.5 * (a - c2) / den;
+    }
+    var f = sr / (bestLag + shift);
+    if (clarity < 0.55 || f < 55 || f > 1200) { S.freq = 0; S.clarity = clarity; return; }
+    S.freq = f; S.clarity = clarity;
+  }
+
+  /* ================= note tracking ================= */
+  function endNote(now) {
+    if (S.stableMidi !== null && S.noteStart) {
+      var dur = (now - S.noteStart) / 1000;
+      if (dur >= 0.12 && S.mode === "live") {
+        S.durations.push(dur);
+        if (S.durations.length > 40) S.durations.shift();
+      }
+    }
+  }
+  function clearCurrentNote(now) {
+    endNote(now);
+    S.stableMidi = null; S.candidateMidi = null; S.midiFloatHist = []; S.midiSmooth = null; S.currentNoteDur = 0;
+  }
+  function trackNote(now, dt) {
+    if (S.freq > 0) {
+      S.midiFloatHist.push(midiFromFreq(S.freq));
+      if (S.midiFloatHist.length > 3) S.midiFloatHist.shift();
+    } else if (S.midiFloatHist.length) {
+      S.midiFloatHist.shift();
+    }
+    var med = null;
+    if (S.midiFloatHist.length) {
+      var sorted = S.midiFloatHist.slice().sort(function (a, b) { return a - b; });
+      med = sorted[Math.floor(sorted.length / 2)];
+    }
+    S.midiSmooth = med;
+    var cand = med !== null ? Math.round(med) : null;
+    if (cand !== S.candidateMidi) { S.candidateMidi = cand; S.candidateSince = now; }
+
+    if (S.candidateMidi !== null && S.stableMidi !== S.candidateMidi && (now - S.candidateSince) >= 80) {
+      endNote(now);
+      S.stableMidi = S.candidateMidi;
+      S.noteStart = now; S.currentNoteDur = 0;
+      if (S.mode === "live") {
+        S.notesSung++;
+        S.noteStartTimes.push(now);
+        if (S.minMidi === null || S.stableMidi < S.minMidi) S.minMidi = S.stableMidi;
+        if (S.maxMidi === null || S.stableMidi > S.maxMidi) S.maxMidi = S.stableMidi;
+      }
+    }
+    if (S.stableMidi !== null) {
+      if (cand === null && (now - S.candidateSince) > 220) {
+        endNote(now);
+        S.stableMidi = null; S.currentNoteDur = 0;
+      } else {
+        S.currentNoteDur = (now - S.noteStart) / 1000;
+        if (S.mode === "live") {
+          S.singSeconds += dt;
+          S.pitchCounts[S.stableMidi % 12] += dt;
+          if (S.currentNoteDur > S.longestNote) S.longestNote = S.currentNoteDur;
+        }
+      }
+    }
+  }
+
+  /* ================= metrics & style auto-detect ================= */
+  function computeMetrics(now) {
+    var cutoff = now - 60000;
+    S.noteStartTimes = S.noteStartTimes.filter(function (t) { return t > cutoff; });
+    var durs = S.durations.slice(-12);
+    var avg = durs.length ? durs.reduce(function (a, b) { return a + b; }, 0) / durs.length : (S.currentNoteDur || 0);
+    var elapsed = S.sessionStartPerf ? Math.min(30, Math.max(1, (now - S.sessionStartPerf) / 1000)) : 30;
+    var recent = 0;
+    for (var i = 0; i < S.noteStartTimes.length; i++) if (S.noteStartTimes[i] > now - 30000) recent++;
+    return {
+      avg: avg,
+      npm: recent / elapsed * 60,
+      center: S.minMidi !== null ? (S.minMidi + S.maxMidi) / 2 : null
+    };
+  }
+
+  function autoDetect(now) {
+    var m = computeMetrics(now);
+    if (S.notesSung < 4 && S.durations.length < 3) return;
+    var cand;
+    if (m.center !== null && m.center <= 47 && m.avg >= 0.4) cand = "bass";
+    else if (m.avg >= 0.9 && m.npm <= 30) cand = "relaxed";
+    else if (m.npm >= 36 || (m.center !== null && m.center >= 62 && m.avg < 0.55)) cand = "bright";
+    else if (m.avg >= 0.55) cand = "relaxed";
+    else cand = "duet";
+    if (cand === S.activeStyle) { S.pendingStyle = null; S.pendingCount = 0; }
+    else if (cand === S.pendingStyle) {
+      S.pendingCount++;
+      if (S.pendingCount >= 2) { S.activeStyle = cand; S.pendingStyle = null; S.pendingCount = 0; }
+    } else { S.pendingStyle = cand; S.pendingCount = 1; }
+  }
+
+  function detectReasonText(m) {
+    var parts = [];
+    if (m.center !== null) {
+      if (m.center <= 47) parts.push("Your notes sit low, around " + noteName(Math.round(m.center)));
+      else if (m.center >= 62) parts.push("Your notes reach high, up to " + noteName(S.maxMidi));
+      else parts.push("Your notes sit in a comfortable middle range, around " + noteName(Math.round(m.center)));
+    }
+    if (m.avg) parts.push("you hold each note for about " + m.avg.toFixed(1) + " seconds");
+    if (m.npm >= 30) parts.push("and you move at about " + Math.round(m.npm) + " notes a minute");
+    var lead = parts.length ? parts.join(", ") + ". " : "";
+    var tail = {
+      bass: "That reads as a deep, bass-led song — so the accompaniment leans low: a strong bass guitar that joins early under the piano.",
+      relaxed: "That reads as a relaxed, unhurried song — so the piano plays softer, with a gentler beat.",
+      bright: "That reads as a bright, lively song — so the beat turns light and bouncy under the piano.",
+      duet: "Steady and centred — so the piano plays the melody out front, side-by-side with you."
+    }[S.activeStyle];
+    return lead + tail;
+  }
+
+  function refreshPanels() {
+    var now = performance.now();
+    var m = computeMetrics(now);
+    S.lastMetrics = m;
+    ui.mRange.textContent = S.minMidi !== null ? noteName(S.minMidi) + " – " + noteName(S.maxMidi) : "—";
+    ui.mAvgNote.textContent = S.notesSung ? m.avg.toFixed(1) + "s" : "—";
+    ui.mTempo.textContent = S.notesSung ? Math.round(m.npm) + " notes/min" : "—";
+    var k = keyLabel();
+    ui.mKey.textContent = k || "—";
+    ui.mPartner.textContent = S.accomp
+      ? (bassActive(S.accomp) ? "Piano + bass · pass " + S.accomp.pass : "Grand piano · pass " + S.accomp.pass)
+      : "Silent";
+    if (S.styleMode === "auto") {
+      if (S.mode === "demo") {
+        ui.detectStyle.textContent = S.playSong ? "Now playing: " + S.playSong.title : "Demo tune playing";
+        ui.detectReason.textContent = "Style detection and the session stats count only your own singing through the microphone — they pause while a song or demo plays, so playback is never counted as your singing.";
+      } else if (!S.notesSung) {
+        ui.detectStyle.textContent = "Waiting for your first notes";
+        ui.detectReason.textContent = "Sing a few notes and this panel will name the style of the song, the key you are centred on, and how the piano & bass accompaniment is set to match it.";
+      } else {
+        ui.detectStyle.textContent = STYLES[S.activeStyle].label + " — detected";
+        ui.detectReason.textContent = detectReasonText(m);
+      }
+    } else {
+      ui.detectStyle.textContent = STYLES[S.activeStyle].label + " — your setting";
+      ui.detectReason.textContent = "You set the style yourself. Switch to Auto-detect any time and Sing Together will read the song and choose for you.";
+    }
+    ui.stTime.textContent = fmtTime(S.singSeconds);
+    ui.stNotes.textContent = S.notesSung;
+    ui.stRange.textContent = S.minMidi !== null ? noteName(S.minMidi) + " – " + noteName(S.maxMidi) : "—";
+    ui.stLong.textContent = S.longestNote.toFixed(1) + "s";
+    ui.stKey.textContent = k || "—";
+    ui.stPartner.textContent = S.partnerNotes;
+  }
+
+  /* ================= stage UI ================= */
+  function updateStageUI() {
+    var has = S.freq > 0 && S.midiSmooth !== null && S.mode !== "idle";
+    // The tuning meter is itself note furniture: it is shown ONLY while a
+    // real note is actually sounding. Idle, or listening with nothing
+    // detected yet, the stage carries no note marks at all.
+    if (ui.tuneMeter) ui.tuneMeter.style.display = has ? "" : "none";
+    if (has) {
+      var m = Math.round(S.midiSmooth);
+      ui.noteName.textContent = noteName(m);
+      ui.noteName.classList.remove("idle");
+      ui.noteFreq.textContent = S.freq.toFixed(1) + " Hz";
+      ui.noteOctave.textContent = "Octave " + (Math.floor(m / 12) - 1) + " · MIDI note " + m;
+      var cents = Math.round((S.midiSmooth - m) * 100);
+      ui.centsMarker.style.left = Math.max(2, Math.min(98, 50 + cents)) + "%";
+      ui.centsMarker.className = "cents-marker" + (Math.abs(cents) <= 10 ? "" : Math.abs(cents) <= 28 ? " off" : " far");
+      var at = Math.abs(cents);
+      if (at <= 8) { ui.tuneText.textContent = "In tune — beautifully centred."; ui.tuneText.className = "tune-text good"; }
+      else if (at <= 25) { ui.tuneText.textContent = cents < 0 ? "Very close — just a touch flat." : "Very close — just a touch sharp."; ui.tuneText.className = "tune-text"; }
+      else { ui.tuneText.textContent = cents < 0 ? "Quite flat — ease the note up a little." : "Quite sharp — relax the note down a little."; ui.tuneText.className = "tune-text"; }
+    } else if (S.mode !== "idle") {
+      ui.noteName.textContent = "";
+      ui.noteName.classList.add("idle");
+      ui.noteFreq.textContent = S.mode === "demo" ? "The singer is taking a breath" : "Listening — sing a note";
+      ui.noteOctave.textContent = "Your pitch will appear here as you sing";
+      ui.tuneText.innerHTML = "&nbsp;";
+      ui.tuneText.className = "tune-text";
+      ui.centsMarker.style.left = "50%";
+      ui.centsMarker.className = "cents-marker";
+    }
+    var pTxt, pQuiet = false, pSing = false;
+    var A = S.accomp;
+    if (A) {
+      pSing = true;
+      pTxt = bassActive(A)
+        ? "Piano and bass guitar are playing “" + A.song.title + "” — pass " + A.pass + ", the bass under the piano."
+        : "The grand piano is playing “" + A.song.title + "” — melody and chords with a steady beat. The bass guitar joins the second time around.";
+    } else if (S.mode === "demo") {
+      pTxt = "The demo singer is playing — the piano and bass stay silent here; they only play for real library songs.";
+      pQuiet = true;
+    } else if (S.mode === "live") {
+      pTxt = "The piano and bass are silent — sing a library song, and once it's recognised and followed, the piano opens with it.";
+      pQuiet = true;
+    } else {
+      pTxt = "The piano and bass are silent — they only play when a real library song is under way.";
+      pQuiet = true;
+    }
+    if (S._pTxt !== pTxt) {
+      S._pTxt = pTxt;
+      ui.partnerText.textContent = pTxt;
+      ui.partnerText.classList.toggle("quiet", pQuiet);
+      ui.partnerLine.classList.toggle("singing", pSing);
+    }
+    if (ui.gDots) {
+      var dotsOn = S.mode !== "idle";
+      ui.gDots.classList.toggle("on", dotsOn);
+      var lv = S.mode === "idle" ? 0 : Math.min(1, S.level * 3.2 + 0.12);
+      var kids = ui.gDots.children;
+      for (var di = 0; di < kids.length; di++) {
+        var sc = REDUCED || !dotsOn ? 1 : 0.65 + lv * (0.55 + 0.45 * Math.sin(performance.now() / 170 + di * 1.15));
+        kids[di].style.transform = "scale(" + sc.toFixed(2) + ")";
+      }
+    }
+  }
+
+  /* ================= canvases: wave + melody contour ================= */
+  function fitCanvas(c) {
+    var r = c.getBoundingClientRect();
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.max(2, Math.round(r.width * d)), h = Math.max(2, Math.round(r.height * d));
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    return { w: w, h: h, d: d };
+  }
+  function ribbon(c, W, H, t, amp, base, colors, wob) {
+    var grad = c.createLinearGradient(0, 0, W, 0);
+    var step = 1 / (colors.length - 1);
+    colors.forEach(function (col, i) { grad.addColorStop(i * step, col); });
+    c.beginPath();
+    var N = 48;
+    for (var i = 0; i <= N; i++) {
+      var x = W * i / N;
+      var y = base - Math.abs(Math.sin(i * 0.32 * wob + t * 2.1) * 0.6 + Math.sin(i * 0.13 * wob - t * 1.3) * 0.4) * amp - amp * 0.12;
+      if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.lineTo(W, H); c.lineTo(0, H); c.closePath();
+    c.fillStyle = grad; c.fill();
+  }
+  function drawWave(ts) {
+    var f = fitCanvas(ui.wave), c = ui.wave.getContext("2d"), W = f.w, H = f.h;
+    c.clearRect(0, 0, W, H);
+    var t = ts * (REDUCED ? 0.00018 : 0.001);
+    var lvl = S.mode === "idle" ? 0.05 + 0.02 * Math.sin(ts / 1400) : Math.min(1, S.level * 3.2 + 0.06);
+    var amp = 4 + lvl * H * 0.42;
+    var base = H * 0.99;
+    ribbon(c, W, H, t * 1.1, amp * 0.75, base, ["rgba(234,67,53,0.28)", "rgba(251,188,5,0.28)"], 0.9);
+    ribbon(c, W, H, t * 1.6 + 2.2, amp, base, ["rgba(66,133,244,0.40)", "rgba(52,168,83,0.40)"], 1.35);
+  }
+  function drawContour(ts) {
+    if (S.mode !== "idle" && S.frame % 2 === 0) {
+      S.contour.push({ t: ts, m: (S.freq > 0 && S.midiSmooth !== null) ? S.midiSmooth : null });
+      var cut = ts - 10000;
+      while (S.contour.length && S.contour[0].t < cut) S.contour.shift();
+    }
+    var f = fitCanvas(ui.contour), c = ui.contour.getContext("2d"), W = f.w, H = f.h;
+    c.clearRect(0, 0, W, H);
+    var dark = DARKQ.matches;
+    var lo = 48, hi = 72;
+    if (S.minMidi !== null) { lo = Math.min(lo, S.minMidi - 3); hi = Math.max(hi, S.maxMidi + 3); }
+    lo = Math.max(30, Math.floor(lo / 12) * 12);
+    hi = Math.min(96, Math.ceil(hi / 12) * 12);
+    if (hi - lo < 24) hi = lo + 24;
+    function yFor(m) { return H - (m - lo) / (hi - lo) * (H - 20 * f.d) - 6 * f.d; }
+    var gridCol = dark ? "rgba(255,255,255,0.10)" : "rgba(16,22,19,0.09)";
+    var labCol = dark ? "rgba(255,255,255,0.45)" : "rgba(16,22,19,0.45)";
+    c.font = (10 * f.d) + "px sans-serif";
+    for (var m = lo; m <= hi; m += 12) {
+      var y = yFor(m);
+      c.strokeStyle = gridCol; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
+      c.fillStyle = labCol;
+      c.fillText("C" + (m / 12 - 1), 6 * f.d, y - 3 * f.d);
+    }
+    if (S.partnerMidi !== null && S.mode !== "idle") {
+      var py = yFor(S.partnerMidi);
+      c.strokeStyle = "rgba(66,133,244,0.55)";
+      c.setLineDash([5 * f.d, 4 * f.d]);
+      c.beginPath(); c.moveTo(0, py); c.lineTo(W, py); c.stroke();
+      c.setLineDash([]);
+    }
+    c.beginPath();
+    var started = false, lastX = 0, lastY = 0, t0 = ts - 10000;
+    S.contour.forEach(function (p) {
+      if (p.m === null) { started = false; return; }
+      var x = (p.t - t0) / 10000 * W, y = yFor(p.m);
+      if (!started) { c.moveTo(x, y); started = true; } else c.lineTo(x, y);
+      lastX = x; lastY = y;
+    });
+    c.strokeStyle = dark ? "#81c995" : "#188038";
+    c.lineWidth = 2.2 * f.d; c.lineJoin = "round";
+    c.stroke();
+    if (started) {
+      c.beginPath(); c.arc(lastX, lastY, 3.4 * f.d, 0, 6.2832);
+      c.fillStyle = "#ea4335"; c.fill();
+    }
+    if (!S.contour.length) {
+      c.fillStyle = labCol;
+      c.font = (12.5 * f.d) + "px sans-serif";
+      c.fillText("Your melody line will draw itself here as you sing.", 12 * f.d, 28 * f.d);
+    }
+  }
+
+  /* ================= demo singer / song playback ================= */
+  var DEMO_MELODY = [[64, 1], [67, 1], [69, 2], [67, 1], [64, 1], [62, 2], [60, 2], [62, 1], [64, 1], [67, 2], [69, 1], [72, 1], [71, 2], [69, 1], [67, 1], [64, 3]];
+  function buildSegs(notes, beats, bpm) {
+    var beat = 60 / bpm, t = 0.6, segs = [];
+    for (var i = 0; i < notes.length; i++) {
+      segs.push({ midi: notes[i], start: t, end: t + beats[i] * beat });
+      t += beats[i] * beat;
+    }
+    return { segs: segs, total: t };
+  }
+  function startDemo(song) {
+    var ctx = ensureCtx();
+    if (!ctx) { micError("Audio is not available in this browser, so playback cannot start."); return; }
+    if (ctx.state === "suspended") ctx.resume();
+    var notes, beats, bpm;
+    if (song) { notes = song.notes; beats = song.beats; bpm = song.bpm; }
+    else {
+      notes = DEMO_MELODY.map(function (p) { return p[0]; });
+      beats = DEMO_MELODY.map(function (p) { return p[1]; });
+      bpm = 92;
+    }
+    var built = buildSegs(notes, beats, bpm);
+    var segs = built.segs, total = built.total;
+    if (song) {
+      // Library songs play twice around: the grand piano + beat open the
+      // first pass, and the bass guitar joins for the second pass.
+      var shift = (total - 0.6) + 60 / bpm;
+      var pass2 = segs.map(function (sg) { return { midi: sg.midi, start: sg.start + shift, end: sg.end + shift }; });
+      segs = segs.concat(pass2);
+      total = total + shift;
+    }
+    var g = ctx.createGain(); g.gain.value = 0; g.connect(ctx.destination);
+    var o1 = ctx.createOscillator(); o1.type = "triangle";
+    var o2 = ctx.createOscillator(); o2.type = "sine"; o2.detune.value = 4;
+    var og = ctx.createGain(); og.gain.value = 0.5;
+    o1.connect(g); o2.connect(og); og.connect(g);
+    var vib = ctx.createOscillator(); vib.frequency.value = 5.1;
+    var vibG = ctx.createGain(); vibG.gain.value = 0;
+    vib.connect(vibG); vibG.connect(o1.frequency); vibG.connect(o2.frequency);
+    var startCtx = ctx.currentTime + 0.05;
+    segs.forEach(function (sg) {
+      var fr = freqFromMidi(sg.midi), st = startCtx + sg.start, en = startCtx + sg.end;
+      o1.frequency.setValueAtTime(fr, st);
+      o2.frequency.setValueAtTime(fr, st);
+      vibG.gain.setValueAtTime(fr * 0.004, st);
+      g.gain.setValueAtTime(0, st);
+      g.gain.linearRampToValueAtTime(0.13, st + 0.09);
+      g.gain.setValueAtTime(0.13, Math.max(st + 0.1, en - 0.12));
+      g.gain.linearRampToValueAtTime(0, en);
+    });
+    o1.start(); o2.start(); vib.start();
+    var stopAt = startCtx + total + 1.0;
+    o1.stop(stopAt); o2.stop(stopAt); vib.stop(stopAt);
+    S.demoSinger = { oscs: [o1, o2, vib], gain: g };
+    S.demo = { segs: segs, startPerf: performance.now() + 50, total: total };
+    S.playSong = song || null;
+    S.demoSegIndex = -1;
+    S.sessionStartPerf = S.demo.startPerf;
+    S.mode = "demo";
+    if (song) startAccomp(song, 0, 0, startCtx + 0.6);
+    setStatus("demo", song ? "Playing “" + song.title + "”" : "Demo tune playing");
+    ui.listenLabel.textContent = "Listening…";
+    ui.listenSub.textContent = song
+      ? "This is “" + song.title + "” from the library — the demo singer takes the melody, the grand piano plays the song with a steady beat, and the bass guitar joins the second time around. Sing along out loud if you like."
+      : "This is the demo singer — a short melody played by the page itself. Watch the notes land. The piano and bass stay silent for the demo: they only play when a real library song is under way.";
+    ui.btnStartText.textContent = "Stop";
+    ui.btnStart.classList.add("stop");
+    ui.btnDemo.disabled = true;
+    syncLibraryButtons();
+  }
+  function demoFeed(ts) {
+    var D = S.demo;
+    if (!D) { S.freq = 0; S.level = 0; return; }
+    var t = (ts - D.startPerf) / 1000;
+    var idx = -1, seg = null;
+    for (var i = 0; i < D.segs.length; i++) {
+      if (t >= D.segs[i].start && t < D.segs[i].end) { seg = D.segs[i]; idx = i; break; }
+    }
+    S.demoSegIndex = idx;
+    if (S.playSong && seg) {
+      var nLen = S.playSong.notes.length;
+      var pos = idx % nLen, pass = Math.floor(idx / nLen) + 1;
+      if (!S.follow || !S.follow.fromPlay || S.follow.pos !== pos || S.follow.pass !== pass) {
+        S.follow = { song: S.playSong, pos: pos, pass: pass, lastSung: seg.midi, fromPlay: true, misses: 0, done: idx >= D.segs.length - 1 };
+        updateRecogUI();
+      }
+    }
+    if (!seg) {
+      S.freq = 0;
+      S.level = Math.max(0, S.level - 0.04);
+      if (t > D.total + 1.2) stopDemo(true);
+      return;
+    }
+    var tin = t - seg.start, dur = seg.end - seg.start;
+    var env = Math.min(1, tin / 0.09, Math.max(0, dur - tin) / 0.12);
+    S.freq = freqFromMidi(seg.midi) * (1 + 0.004 * Math.sin(t * Math.PI * 2 * 5.1));
+    S.level = 0.16 * Math.max(0, env);
+    S.clarity = 1;
+  }
+  function stopDemo(finished) {
+    if (S.demoSinger) {
+      var t = S.ctx.currentTime, oscs = S.demoSinger.oscs, gn = S.demoSinger.gain;
+      try { gn.gain.cancelScheduledValues(t); gn.gain.setTargetAtTime(0, t, 0.05); } catch (e) {}
+      setTimeout(function () { oscs.forEach(function (o) { try { o.stop(); } catch (e) {} }); }, 350);
+      S.demoSinger = null;
+    }
+    clearCurrentNote(performance.now());
+    stopAccomp();
+    if (S.follow && S.follow.fromPlay) S.follow = null;
+    S.demo = null; S.playSong = null; S.demoSegIndex = -1;
+    S.mode = "idle"; S.freq = 0; S.level = 0;
+    setStatus("", finished ? "Finished" : "Ready");
+    ui.listenLabel.textContent = finished ? "That's the duet" : "Ready when you are";
+    ui.listenSub.innerHTML = DEFAULT_SUB_HTML;
+    ui.btnStartText.textContent = "Start singing together";
+    ui.btnStart.classList.remove("stop");
+    ui.btnDemo.disabled = false;
+    updateRecogUI();
+    syncLibraryButtons();
+  }
+
+  /* ================= live microphone ================= */
+  function micError(msg) {
+    setStatus("error", "Microphone unavailable");
+    ui.micNote.textContent = msg;
+    ui.micNote.classList.add("error");
+    ui.listenLabel.textContent = "One quick fix needed";
+    ui.listenSub.textContent = "The demo tune and the song library below work without a microphone — tap “Hear a demo tune” or play a library song to hear Sing Together in action.";
+  }
+  function handleMicError(err) {
+    var name = err && err.name ? err.name : "";
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      micError("Microphone permission was blocked. Allow the microphone for this page in your browser settings, then tap Start again — or use the demo, which needs no microphone.");
+    } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      micError("No microphone was found on this device. The demo tune and library songs work without one.");
+    } else if (name === "NotReadableError") {
+      micError("The microphone is busy with another app. Close it, then tap Start again.");
+    } else {
+      micError("The microphone could not be started. Check it is connected and allowed for this page — or use the demo, which needs no microphone.");
+    }
+  }
+  function startLive() {
+    var ctx = ensureCtx();
+    if (!ctx) { micError("Audio is not available in this browser."); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      micError("This browser does not offer microphone access here. You can still hear the demo tune and play library songs.");
+      return;
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+      .then(function (stream) {
+        S.micStream = stream;
+        var src = ctx.createMediaStreamSource(stream);
+        var an = ctx.createAnalyser();
+        an.fftSize = 2048;
+        an.smoothingTimeConstant = 0.25;
+        src.connect(an);
+        S.analyser = an;
+        S.timeBuf = new Float32Array(an.fftSize);
+        S.decBuf = new Float32Array(1024);
+        S.corrBuf = new Float32Array(2048);
+        S.mode = "live";
+        S.sessionStartPerf = performance.now();
+        S.sungSeq = [];
+        S.matchCandidate = null;
+        S.guessStart = null;
+        S._recogMsg = null;
+        setStatus("live", "Listening…");
+        ui.listenLabel.textContent = "Listening…";
+        ui.listenSub.textContent = "Sing anything — a song you love, or just make it up. Your notes are named live as you sing. Start a library song, and once it's recognised and followed, the grand piano opens with it — the bass guitar joins the second time around.";
+        ui.btnStartText.textContent = "Stop";
+        ui.btnStart.classList.add("stop");
+        ui.btnDemo.disabled = true;
+        ui.micNote.textContent = "Listening on this device only — nothing is recorded or sent anywhere. Tap Stop any time.";
+        ui.micNote.classList.remove("error");
+        syncLibraryButtons();
+      })
+      .catch(handleMicError);
+  }
+  function stopLive() {
+    if (S.micStream) {
+      S.micStream.getTracks().forEach(function (tr) { tr.stop(); });
+      S.micStream = null;
+    }
+    S.analyser = null;
+    if (S.mode === "live") {
+      clearCurrentNote(performance.now());
+      stopAccomp();
+      if (S.follow && !S.follow.fromPlay) { S.follow = null; updateRecogUI(); }
+      S.mode = "idle"; S.freq = 0;
+      setStatus("", S.notesSung ? "Paused" : "Ready");
+      ui.listenLabel.textContent = S.notesSung ? "Paused" : "Ready when you are";
+      ui.listenSub.innerHTML = DEFAULT_SUB_HTML;
+      ui.btnStartText.textContent = "Start singing together";
+      ui.btnStart.classList.remove("stop");
+      ui.btnDemo.disabled = false;
+      ui.micNote.textContent = DEFAULT_MIC_TEXT;
+      ui.micNote.classList.remove("error");
+      syncLibraryButtons();
+    }
+  }
+
+  /* ================= main loop ================= */
+  var lastT = 0;
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.05, lastT ? (ts - lastT) / 1000 : 0.016);
+    lastT = ts;
+    S.frame++;
+    if (S.mode === "live") detectPitch();
+    else if (S.mode === "demo") demoFeed(ts);
+    else { S.level *= 0.9; S.freq = 0; }
+    if (S.mode !== "idle") {
+      trackNote(ts, dt);
+      if (S.stableMidi !== S._curMidi) {
+        if (S._curMidi !== null && S._curMidi !== undefined && S._curStart) {
+          var d = (ts - S._curStart) / 1000;
+          if (d >= 0.15) onSungNote(S._curMidi, d, ts);
+        }
+        S._curMidi = S.stableMidi;
+        S._curStart = ts;
+        if (S.stableMidi !== null) spawnFloatingNote(S.stableMidi);
+      }
+    }
+    accompTick();
+    updateStageUI();
+    drawWave(ts);
+    drawContour(ts);
+    updateFloatingNotes(ts, dt);
+    if (ts - S.lastStatsAt > 250) { S.lastStatsAt = ts; refreshPanels(); }
+    if (S.styleMode === "auto" && S.mode === "live" && ts - S.lastDetectAt > 2500) {
+      S.lastDetectAt = ts;
+      autoDetect(ts);
+      refreshPanels();
+    }
+  }
+  setStatus("", "Ready");
+  requestAnimationFrame(loop);
+
+  /* ================= song library: lightweight note data =================
+     Each song is data only — title, style tag, tempo, key, the melody as a
+     sequence of MIDI notes with beat lengths, and its chord pattern. The
+     piano + bass accompaniment is played live from this data. No audio. */
+  S.sungSeq = [];
+  S.follow = null;
+  S.matchCandidate = null;
+  S.suppressed = {};
+  S.playSong = null;
+  S.demoSegIndex = -1;
+  S._curMidi = null;
+  S._curStart = 0;
+  S._recogMsg = null;
+  S.guessStart = null;
+
+  ui.recogState = el("recogState");
+  ui.recogTitle = el("recogTitle");
+  ui.recogText = el("recogText");
+  ui.btnFollow = el("btnFollow");
+  ui.btnNotSong = el("btnNotSong");
+  ui.btnStopFollow = el("btnStopFollow");
+  ui.btnTryAgain = el("btnTryAgain");
+  ui.songList = el("songList");
+  ui.songCount = el("songCount");
+  ui.ownerSongList = el("ownerSongList");
+  ui.ownerSongCount = el("ownerSongCount");
+
+  var STYLE_TAG = { bass: "Bass focus", relaxed: "Relaxed", bright: "Bright pop", duet: "Side-by-side" };
+
+  var LIBRARY = [
+    {
+      id: "ode", title: "Ode to Joy",
+      origin: "Ludwig van Beethoven, 1824 · public domain",
+      style: "bright", key: "C major", bpm: 108,
+      chords: "C · G · C · G7 · C", harmonyDesc: "thirds above the melody",
+      notes:   [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62, 64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60],
+      beats:   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.5, 0.5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.5, 0.5, 2],
+      harmony: [3, 3, 4, 4, 4, 4, 3, 3, 4, 4, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 3, 3, 4, 4, 3, 3, 3, 4, 4]
+    },
+    {
+      id: "twinkle", title: "Twinkle, Twinkle, Little Star",
+      origin: "Traditional French melody, 18th century · public domain",
+      style: "relaxed", key: "C major", bpm: 96,
+      chords: "C · F · C · G · C", harmonyDesc: "thirds above the melody",
+      notes:   [60, 60, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 60, 67, 67, 65, 65, 64, 64, 62, 67, 67, 65, 65, 64, 64, 62, 60, 60, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 60],
+      beats:   [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2],
+      harmony: [4, 4, 4, 4, 3, 3, 4, 4, 4, 3, 3, 3, 3, 4, 4, 4, 4, 4, 3, 3, 3, 4, 4, 4, 4, 3, 3, 3, 4, 4, 4, 4, 3, 3, 4, 4, 4, 3, 3, 3, 3, 4]
+    },
+    {
+      id: "grace", title: "Amazing Grace",
+      origin: "Hymn text by John Newton, 1779 · tune: New Britain, 19th century · public domain",
+      style: "relaxed", key: "G major", bpm: 72, bar: 3,
+      chords: "G · C · G · D · G", harmonyDesc: "thirds above the melody",
+      notes:   [62, 67, 71, 67, 71, 69, 67, 64, 62, 62, 67, 71, 67, 71, 69, 67],
+      beats:   [1, 2, 1, 1, 1, 1, 2, 1, 3, 1, 2, 1, 1, 1, 1, 3],
+      harmony: [4, 4, 3, 4, 3, 3, 4, 3, 4, 4, 4, 3, 4, 3, 3, 4]
+    },
+    {
+      id: "jacques", title: "Frère Jacques",
+      origin: "Traditional French round · public domain",
+      style: "duet", key: "C major", bpm: 112,
+      chords: "C throughout", harmonyDesc: "sung as a round, entering two beats behind you",
+      notes:   [60, 62, 64, 60, 60, 62, 64, 60, 64, 65, 67, 64, 65, 67, 67, 69, 67, 65, 64, 60, 67, 69, 67, 65, 64, 60, 60, 55, 60, 60, 55, 60],
+      beats:   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 0.5, 0.5, 0.5, 0.5, 1, 1, 0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1, 2, 1, 1, 2],
+      harmony: null, round: 2
+    },
+    {
+      id: "auld", title: "Auld Lang Syne",
+      origin: "Traditional Scottish, 18th century · public domain",
+      style: "relaxed", key: "C major", bpm: 88,
+      chords: "C · F · C · G · C", harmonyDesc: "thirds above the melody",
+      notes:   [60, 65, 65, 65, 69, 67, 65, 67, 69, 65, 65, 69, 72, 74, 74, 72, 69, 65, 67, 65, 62, 60],
+      beats:   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2],
+      harmony: [4, 4, 4, 4, 3, 4, 4, 4, 3, 4, 4, 3, 4, 3, 3, 4, 3, 4, 4, 4, 3, 4]
+    },
+        {
+      id: "adon", title: "Adon HaShulom", owner: true,
+      origin: "Your recording · Neginei Leil Shabbos — first-pass melody sketch converted from the recording",
+      style: "bright", key: "A major", bpm: 144,
+      chords: "A · D · A · E · A", harmonyDesc: "harmony derived from the key centre",
+      notes:   [67,69,69,63,70,69,61,61,61,61,67,62,61,71,64,63,68,69,65,73,64,64,65,64,64,64,64,65,64,64,68,66,66,64,64,64,63,69,69,64,65,66,68,66,64,64,66,68,66,64,64,68,64,64,68,69,68,70,61,69,68,68,64,68,68,66,69,68,69,68,66,65,65,65,69,64,65,75,73,73,73,73,69,69,69,69,68,69,69,68,71,68,64,64,64,64,65,64,67,64,64,64,64,66,65,64,64,75,64,68,68,66,75,66,75,64,64,64,64,67,68,69,70,71,72,68,68,73,73,64,64,68,66,68,66,65,64,68,73,68,64,73,64,64,69,73,73,69,69,68,68,68,69,68,64,64,64,64,64,75,71,68,69,68,70,70,72,74,68,68,65,74,68,73,74,66,65,65,64,66,68,67,66,68,72,71,66,68,73,73,70,68,73,64,65,73,74,66,70,64,66,70,72,64,66,74,68,71,68,71,71,72,72,75,73,68,68,68,64,69,71,65,66,75,64,75,64,68,70,68,65,68,66,64,68,68,64,72,74,73,73,66,69,68,66,64,75,64,75,64,75,68,71,63,68,63,69,72,62,62,65,67,68,62,61,68,68,66,63,64,63,63,64,68,68,75,68,69,69,75,74,74,74,67,73,68,68,68,68,72,69,75,64,75,68,75,68,73,62,64,63,62,68,69,69,66,66,70,71,65,65,65,68,64,64,72,65,68,63,68,69,64,71,70,73,71,69,66,62,64,64,68,73,66,68,75,75,68,61,71,71,68,66,71,71,71,69,68,64,68,72,70,69,70,73,69,69,75,68,69,68,68,68,74,75,73,64,74,73,74,73,71,72,73,70,66,68,69,70,71,68,73,74,69,69,69,67,67,65,67,69,67,70,69,67,69,69,69,65,67,67,67,65,69,69,67,72,67,69,75,69,74,68,65,67,69,69,64,69,68,69,67,68,69,69,64,67,69,65,70,64,64,70,67,69,67,64,64,64,64,64,63,68,69,62,63,69,62,68,62,70,61,62,61,62,62,62,62,62,62,68,67,68,68,66,66,72,65,70,69,69,70,65,61,62,64,62,62,74,67,68,68,68,66,65,72,64,69,69,74,69,65,68,61,62,62,69,67,69,69,67,69,67,67,72,72,67,67,65,65,70,65,65,69,65,62,70,72,72,70,62,65,69,68,69,68,68,65,67,69,69,71,71,73,66,69,69,69,62,62,69,69,69,68,70,72,65,72,64,69,64,67,67,67,72,72,72,68,70,70,72,68,65,74,68,69,69,65,70,70,74,70,74,69,70,67,70,62,62,64,72,69,69,70,70,68,71,69,64,65,66,67,68,69,72,61],
+      beats:   [1,1.25,1,1,0.5,1,3.75,0.75,1.75,1,2.75,0.75,3.5,1,1,0.5,2.75,1,2,2,0.5,2.25,1.75,1.5,0.75,2.5,0.5,1.25,2.25,1,2,1.25,1,0.75,1.25,2.75,0.5,2.25,0.25,1,0.25,1,1,1.75,0.5,2,1,1,0.5,1,1,1.25,1.5,1,2,1,1.25,0.5,1,2,1.25,1,1.5,0.5,1.75,1.75,2,0.75,0.25,2.5,1,0.75,0.75,0.75,6,0.25,1.75,1.25,0.5,1.25,0.75,0.75,2,2,0.75,0.75,0.5,1.25,1.5,0.25,0.25,2,0.5,2,0.75,2.5,0.25,0.75,1.25,1,1,1.75,0.75,1,1,1,1.5,1.5,1.75,0.75,0.5,0.75,0.5,0.5,0.5,0.75,1.5,2.25,0.5,0.25,0.5,0.25,0.5,0.25,1.75,1.5,0.75,1.25,1,0.5,1,0.5,1,0.75,0.75,0.75,0.5,0.25,0.75,1.5,1,0.5,3,0.25,1.5,1,0.5,6,0.75,1.25,1.25,0.5,0.25,1.5,1.5,0.5,0.5,0.75,2,0.75,3.25,0.75,0.75,0.5,0.75,1.5,0.25,0.5,1.75,1,0.25,0.75,0.25,0.75,1.25,1.25,0.75,1.5,0.75,0.75,0.25,0.5,0.75,1,0.25,0.5,1,1.25,1,1.25,0.5,2,0.5,0.5,2,0.5,0.75,2.25,0.5,1.25,1.75,0.5,0.5,2.5,0.5,0.25,5.5,0.5,4,2.75,0.5,0.75,1,1.25,3.5,1.25,0.5,0.5,5.25,0.5,1,0.5,0.5,0.25,0.25,1.75,3.5,0.5,0.25,0.25,1,1.75,2.5,1,1.5,1.75,2.25,1,0.75,2.75,1.5,5,0.25,0.5,1.75,0.25,0.25,0.5,0.75,1,0.25,1.25,1.5,0.25,0.5,1,3.75,0.75,0.75,0.25,1.25,0.5,1,0.25,1.5,2.5,3.25,0.75,0.5,0.25,1.5,1.25,3,0.5,0.5,0.5,0.5,0.5,2,2.5,0.75,0.5,0.5,1.5,0.5,1,2,0.75,0.5,2.75,0.5,0.5,0.75,0.75,0.5,2.75,2.75,1.5,0.75,0.25,0.5,0.75,2.5,2.25,1.25,0.75,1.25,0.25,4.75,0.75,1,2.25,1.5,1,1.25,0.25,0.5,0.5,0.25,0.75,0.75,1,1.25,0.75,3.25,0.25,1.25,2.25,0.5,1,1,1,6,1,6,3.25,0.5,4.5,6,1.75,0.5,0.25,0.25,5.75,2,0.5,0.25,1.25,2.25,3.5,0.75,1.25,0.25,0.25,0.75,1.5,5,1.25,3.25,0.75,1.25,1.75,2,0.75,0.25,0.5,0.5,0.25,0.75,1,1.25,0.25,0.5,1.5,0.25,0.75,0.25,0.25,0.5,0.25,0.5,0.25,3.25,1.75,1.25,3,0.75,2,1.25,1.25,1,0.5,0.75,1.5,3,1.25,1.5,1,3.5,1.25,0.75,0.75,1,0.5,0.5,1.25,3.25,0.5,6,2.75,1.75,0.5,0.25,0.75,0.75,1.75,0.75,0.5,1.25,0.75,5,0.75,0.25,2,0.75,0.75,1.25,1.75,3.25,1.75,0.5,0.75,1,4.25,1.25,3.25,0.75,2,0.5,1.75,6,0.5,1,4.5,0.5,0.25,1.5,0.5,0.5,0.5,2,0.5,1,0.5,0.5,1,0.75,1,1.75,1,0.25,0.75,1,0.75,0.75,0.75,1.25,0.25,0.5,5.75,2.5,1,1,0.25,1,0.5,1.5,1.5,3.25,0.5,1,0.5,1,0.5,1,2,1,1,1.25,0.5,1.75,0.5,0.75,0.5,1.5,0.25,2.5,1,1.75,0.25,0.25,0.5,3.25,1,1,0.5,1.5,0.75,1,5,0.25,1.25,0.5,2.25,2,1,1.75,1.25,1,2,2,2,2,0.5,0.25,0.75,0.5,2,2,6,0.5,1.25,1,0.75,0.5,1,1.25,1,0.5,1.75,0.5,0.25,1,2.25,4,0.5,0.25,1.5,0.5,0.25,1,0.5,0.75,0.25,2,1,0.75,0.25,0.75,0.25,0.5,0.5,1.25,1,1,0.75,0.5,2,0.75,0.75,0.25,0.5,0.5,0.5,0.25,0.25,1,1.25,2.25,1,0.75,1.5,1,0.75,1,1.25,0.75,2.5,0.25,0.25,0.25,0.25,0.25,1,0.5,0.25],
+      harmony: null
+    },
+    {
+      id: "hamechakim", title: "Ohavei Hashem Hamechakim", owner: true,
+      origin: "Your recording · Neginei Leil Shabbos — first-pass melody sketch converted from the recording",
+      style: "relaxed", key: "F minor", bpm: 129,
+      chords: "Fm · B♭m · Fm · C · Fm", harmonyDesc: "harmony derived from the key centre",
+      notes:   [48,53,48,53,48,46,48,46,44,46,48,49,46,44,50,44,46,48,56,53,49,49,56,48,53,57,46,56,57,46,48,57,46,49,46,48,57,46,49,57,49,48,56,44,49,44,48,53,56,57,57,53,46,56,46,44,45,44,45,44,43,53,44,44,45,44,53,44,53,44,45,44,43,53,46,48,53,44,53,44,45,46,44,44,44,44,43,44,44,44,53,56,53,56,46,56,57,56,55,56,57,57,56,57,53,53,46,46,46,54,53,46,46,46,48,51,57,56,46,46,46,46,46,49,46,49,56,57,53,46,44,48,53,43,43,44,45,53,45,44,44,43,53,46,53,44,51,53,44,44,48,51,53,53,44,46,48,43,44,53,44,50,55,53,56,46,56,53,48,57,53,46,53,54,53,53,48,53,55,55,56,57,53,53,44,55,46,53,53,44,51,56,53,56,56,48,51,53,53,56,53,46,48,48,56,53,55,55,57,53,46,56,56,57,53,53,53,48,53,46,46,48,54,53,46,46,48,49,48,48,46,56,56,46,48,48,56,53,53,50,48,46,48,46,46,44,46,53,56,48,53,53,53,53,47,53,53,46,48,48,49,44,46,44,44,44,53,53,53,46,48,44,46,44,44,53,46,53,46,49,48,53,55,55,56,57,53,57,56,56,55,53,55,46,51,57,51,53,56,49,56,48,57,51,53,53,56,48,46,48,55,56,46,53,56,43,53,44,51,46,53,49,48,48,44,48,53,48,53,45,44,43,53,53,44,46,46,48,53,43,44,44,44,44,53,53,48,53,46,46,48,54,46,46,48,49,48,46,48,46,44,44,48,44,53,53,50,48,48,46,46,44,46,44,46,53,44,48,45,53,53,53,53,48,47,53,46,48,46,48,49,48,56,46,57,56,56,53,53,48,49,46,48,56,46,56,46,48,48,53,44],
+      beats:   [0.25,1,2,0.75,1,1,1.25,2,2,1,1.25,2,1.25,1.25,0.75,0.75,2.5,2,1,0.25,2.5,0.25,1,0.25,0.5,0.25,1,1,0.5,1.5,2.25,1.25,0.25,0.5,0.5,0.25,0.25,0.25,0.5,0.5,0.75,0.75,1.5,1.25,0.25,6,2.75,0.75,0.5,0.5,4.25,1.25,0.5,0.75,2.5,1.25,0.5,0.75,0.5,0.5,3.25,0.5,1.25,0.25,1.75,2.75,1,5.5,0.75,0.5,0.5,1.75,0.75,1.25,3.75,6,0.75,0.25,0.75,0.5,3.25,3.25,3.25,0.75,1.25,1.5,0.25,3,2.25,4,1.25,1.5,1,2,1.5,0.5,0.5,1.75,1.25,0.5,0.5,0.5,0.25,1.5,1.75,1,2.75,2.25,1.75,0.25,0.75,4.5,5.25,1.5,1.25,0.75,1,2.5,5,3,4.75,3,0.5,0.25,0.25,1.75,5.5,0.25,3.75,0.5,1,0.75,1,1,0.25,0.5,0.25,1,0.25,2,0.25,1.25,2,0.25,0.75,0.75,1.25,0.5,2.25,0.25,2.75,0.5,3,1.25,1.75,0.75,0.5,0.75,0.75,3.25,0.25,0.25,1,0.75,1.5,2.5,3.5,0.25,1.75,0.5,0.5,0.5,0.75,0.25,1,2.25,0.75,1,1,0.25,0.5,0.25,0.5,2.75,0.5,1,0.25,1.75,0.5,0.5,0.75,0.75,0.5,2,0.25,2.75,0.25,3,1.25,1.5,0.25,0.5,0.5,0.75,1,3.5,0.25,1,0.25,2.25,2.5,1.75,1,3.5,1.5,0.5,0.5,0.75,0.75,2,1,0.5,0.25,0.25,4.25,1,1,0.5,0.75,0.75,1,2.5,1.25,1,0.75,0.5,2.5,2.5,1,0.75,0.75,1.5,1.25,4.75,1.25,1.25,3.5,0.5,1.5,1,0.5,2.5,0.75,0.75,1.75,1.5,1,1.25,6,1,1.5,0.5,0.5,0.5,2.25,5.25,3,2,1.5,0.5,2.5,3.25,1.25,2.75,6,2,0.75,1,0.5,0.75,1,1,1,0.5,0.5,0.25,1,0.25,2,0.75,1,1.75,0.25,0.75,0.5,0.25,1.25,0.75,1.25,0.5,0.5,0.75,2,0.5,2.75,1.5,1.25,0.5,1,0.5,0.75,0.25,0.5,3.25,0.5,1,0.75,0.5,1,0.25,0.75,0.25,0.75,0.75,1.5,1.5,0.25,2.25,6,6,1,5.25,1.25,2.25,2.25,0.5,0.25,1.75,4.25,0.5,4.75,2,2,2.25,1.75,0.5,0.75,0.75,2,1,0.5,0.5,4.25,1,1,0.5,0.25,0.5,0.5,1.25,2,2.5,1.25,2.5,2.5,0.75,0.75,2.25,1.25,4.75,1,1.25,1.25,0.25,2,0.5,1.5,0.5,0.5,0.75,2.25,0.75,0.5,0.25,1.75,2.5,1.25,5.5,0.5,1,1.25,0.25,0.5,0.25,0.5,2.25,5.25,3,1.75,0.5,1,0.5,2.5,3.25,1,1.25,6,6,4,0.75,0.25],
+      harmony: null
+    },
+    {
+      id: "sinee", title: "Ohavei Hashem Sinee", owner: true,
+      origin: "Your recording · Neginei Leil Shabbos — first-pass melody sketch converted from the recording",
+      style: "duet", key: "D♯ minor", bpm: 152,
+      chords: "D♯m · G♯m · D♯m · A♯ · D♯m", harmonyDesc: "harmony derived from the key centre",
+      notes:   [49,48,45,48,45,45,49,50,49,49,52,51,52,50,51,52,51,52,51,52,51,49,41,50,49,46,49,45,46,45,46,45,46,49,46,45,46,45,50,49,49,50,49,50,49,46,49,46,45,46,45,44,50,51,41,52,50,51,52,46,45,50,51,50,50,46,47,49,46,46,46,47,46,44,53,52,51,50,46,53,53,54,54,54,53,54,53,52,53,50,51,51,52,53,54,53,54,53,52,51,54,53,54,54,45,44,54,53,52,51,54,44,45,45,44,54,53,54,44,54,53,52,53,54,53,54,53,50,51,50,51,50,51,52,54,42,41,51,42,41,42,45,46,45,44,44,42,41,51,50,51,50,42,44,45,44,43,42,41,51,51,42,45,46,45,46,44,43,42,42,42,41,51,42,43,46,45,46,43,42,43,44,46,45,46,45,46,44,55,53,53,54,44,44,46,44,54,44,54,53,51,55,46,44,53,54,51,55,55,46,55,54,50,44,54,45,46,46,44,54,45,44,45,46,44,42,44,42,41,50,51,51,50,51,51,42,51,42,42,44,43,43,42,41,51,42,54,53,52,51,51,54,47,51,54,54,46,44,54,44,54,53,51,47,51,46,51,53,54,54,46,44,54,44,54,51,54,51,51,53,54,54,46,46,44,55,54,44,54,52,50,51,54,55,46,44,54,47,46,44,55,46,55,54,55,44,46,45,46,44,54,44,44,44,46,44,54,44,54,53,50,51,50,51,50,51,55,46,44,54,54,51,43,42,43,46,45,44,42,49,42,45,44,45,46,44,42,42,44,43,44,45,46,44,42,44,42,41,52,51,50,51],
+      beats:   [1.25,3,1,0.75,1.5,3.75,0.5,0.5,1,0.75,0.75,0.25,0.5,1.75,1.25,0.75,0.25,0.25,0.25,0.75,3.25,0.25,0.25,2.75,3,1,0.75,0.25,1,3.25,1.25,0.25,2.75,1.5,0.75,1,0.5,5,3,0.5,0.25,0.25,0.25,0.25,1.75,1.5,0.5,1.25,0.25,1,2.5,0.5,2.75,0.5,1,1,1,0.5,5.5,0.25,0.75,1,0.5,3.75,0.5,0.25,1,1,3.5,1,0.25,0.25,0.75,0.5,0.25,1,0.75,1,6,1.25,1.25,0.75,3.25,0.25,0.25,1.75,0.25,1,1.5,1.5,0.5,0.25,1,0.25,2.75,0.25,0.5,0.5,0.25,1.5,0.75,5.5,1,2.75,1.75,2.25,1,0.5,0.25,2.5,1,0.25,0.75,0.75,2.25,1,1.25,0.25,0.75,4.5,0.5,1,0.25,6,1.5,0.25,0.75,0.5,0.25,0.25,0.25,1.25,0.25,0.5,2.75,1,1,1.5,0.75,5.75,3.25,0.25,0.75,0.75,1.25,1,1,0.5,1.5,0.25,0.25,0.75,1,0.25,1.5,2,0.25,0.75,2.5,2,2,1.5,0.25,0.25,0.25,3,0.25,0.75,1.5,2.25,0.5,0.75,2.5,0.25,0.25,2,0.25,1.75,1,4.5,1.25,1,0.75,0.25,1.25,0.25,1.75,0.5,0.25,0.5,0.25,3.5,3,0.5,0.75,0.75,1.25,1,1,1,5.25,1.5,3.75,0.75,0.25,4.75,2,0.5,0.5,4,1,4.75,0.5,0.75,0.25,1.25,0.75,3,0.75,4.25,0.25,2.5,0.5,0.75,0.75,1.5,1,1,1,0.5,1.75,0.75,0.75,2.75,4.5,0.75,1.25,6,1,2,0.5,0.5,1.5,0.75,1,4.5,0.75,0.75,0.5,1,4,0.5,0.25,1.25,6,0.5,1,1.25,0.75,0.25,1,1.5,4.25,2,4,1.25,1,0.25,6,1.25,0.75,1,0.75,0.25,1.25,1,6,5,1,0.25,6,0.5,1,0.75,0.5,0.5,0.75,0.25,1.5,1,0.75,4.25,1,0.5,3.75,1,5,1,1,0.25,1,4,1,4.75,1,1.25,0.25,0.75,3.25,0.75,4,0.75,2,0.75,1.25,0.75,1,1,1,1.5,0.5,0.75,0.25,1.25,0.5,1.75,1.25,3.5,0.75,1.5,3.5,1.75,0.25,0.5,0.25,3.5,0.5,1,4.75,0.5,1.25,0.25,0.75,0.25,3.75,0.75,3.25,1,1.5,0.5,0.75,0.25,1,0.75,1.25,1,1,0.25,1.5,1.75,0.25,1.5],
+      harmony: null
+    }
+  ];
+
+  function songRowHtml(song) {
+    return '<div class="song-row">' +
+      '<div class="song-main">' +
+        '<div class="song-title">' + song.title + "</div>" +
+        '<div class="song-meta">' + song.origin + "</div>" +
+        '<div class="song-tags">' +
+          '<span class="chip style">' + STYLE_TAG[song.style] + " style</span>" +
+          '<span class="chip">Key of ' + song.key + "</span>" +
+          '<span class="chip">&#119133; = ' + song.bpm + "</span>" +
+          '<span class="chip">' + song.notes.length + " notes</span>" +
+        "</div>" +
+        '<div class="song-chords">Chords: ' + song.chords + " · Piano &amp; beat open the song · bass guitar joins the second time around</div>" +
+      "</div>" +
+      '<button class="btn small ghost song-play" type="button" data-song="' + song.id + '">Play it with me</button>' +
+    "</div>";
+  }
+  function renderLibrary() {
+    var starters = LIBRARY.filter(function (s) { return !s.owner; });
+    var owners = LIBRARY.filter(function (s) { return !!s.owner; });
+    ui.songCount.textContent = starters.length;
+    if (ui.ownerSongCount) ui.ownerSongCount.textContent = owners.length;
+    ui.songList.innerHTML = starters.map(songRowHtml).join("");
+    if (ui.ownerSongList) ui.ownerSongList.innerHTML = owners.map(songRowHtml).join("");
+    var btns = document.querySelectorAll("[data-song]");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener("click", function () {
+        if (S.mode !== "idle") return;
+        var id = this.getAttribute("data-song");
+        for (var j = 0; j < LIBRARY.length; j++) {
+          if (LIBRARY[j].id === id) { startDemo(LIBRARY[j]); break; }
+        }
+      });
+    }
+  }
+  function syncLibraryButtons() {
+    var btns = document.querySelectorAll("[data-song]");
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = S.mode !== "idle";
+  }
+
+  /* ================= recognition: intervals + rhythm, on-device ================= */
+  function scoreWindow(song, w, sung, sOff, k) {
+    var cnt = k - 1, iSum = 0, rSum = 0;
+    for (var i = 0; i < cnt; i++) {
+      var si = sung[sOff + i + 1].midi - sung[sOff + i].midi;
+      var gi = song.notes[w + i + 1] - song.notes[w + i];
+      iSum += si === gi ? 1 : (Math.abs(si - gi) === 1 ? 0.35 : 0);
+      var sr = sung[sOff + i + 1].dur / Math.max(0.08, sung[sOff + i].dur);
+      var gr = song.beats[w + i + 1] / song.beats[w + i];
+      var rr = sr / gr;
+      rSum += (rr > 0.65 && rr < 1.55) ? 1 : (rr > 0.45 && rr < 2.2 ? 0.45 : 0);
+    }
+    return { score: 0.72 * (iSum / cnt) + 0.28 * (rSum / cnt), iScore: iSum / cnt };
+  }
+  function tryMatch() {
+    var sung = S.sungSeq;
+    if (sung.length < 6) return;
+    var perSong = [];
+    LIBRARY.forEach(function (song) {
+      var sup = S.suppressed[song.id];
+      if (sup !== undefined && sung.length - sup < 12) return;
+      var best = null;
+      var maxK = Math.min(sung.length, song.notes.length, 16);
+      for (var k = maxK; k >= 6; k--) {
+        var sOff = sung.length - k;
+        for (var w = 0; w + k <= song.notes.length; w++) {
+          var r = scoreWindow(song, w, sung, sOff, k);
+          if (!best || r.score > best.score) best = { song: song, pos: w + k - 1, score: r.score, iScore: r.iScore, notes: k };
+        }
+      }
+      if (best) perSong.push(best);
+    });
+    perSong.sort(function (a, b) { return b.score - a.score; });
+    var top = perSong[0], second = perSong[1];
+    if (top && top.score >= 0.8 && top.iScore >= 0.75 && (!second || top.score - second.score >= 0.04)) {
+      if (!S.matchCandidate || S.matchCandidate.song.id !== top.song.id || top.score > S.matchCandidate.score) {
+        S.matchCandidate = top;
+        updateRecogUI();
+      }
+    }
+  }
+  function onSungNote(midi, dur, now) {
+    if (S.mode !== "live") return;
+    if (!S.guessStart) S.guessStart = now;
+    S.sungSeq.push({ midi: midi, dur: dur });
+    if (S.sungSeq.length > 48) S.sungSeq.shift();
+    if (S.follow && !S.follow.fromPlay) followAdvance(midi);
+    else if (!S.follow) tryMatch();
+  }
+
+  /* ================= follow-along ================= */
+  function openFollow() {
+    var cand = S.matchCandidate;
+    if (!cand) return;
+    var lastSung = S.sungSeq.length ? S.sungSeq[S.sungSeq.length - 1].midi : cand.song.notes[cand.pos];
+    S.follow = {
+      song: cand.song, pos: cand.pos, pass: 1, lastSung: lastSung,
+      fromPlay: false, misses: 0, done: cand.pos >= cand.song.notes.length - 1
+    };
+    S.matchCandidate = null;
+    S._recogMsg = null;
+    // The piano opens with the song from where the singer is, transposed
+    // to the key the singer is actually singing in.
+    startAccomp(cand.song, cand.pos, lastSung - cand.song.notes[cand.pos]);
+    updateRecogUI();
+  }
+  function stopFollow(msg) {
+    S.follow = null;
+    stopAccomp();
+    S._recogMsg = msg || null;
+    updateRecogUI();
+  }
+  function followAdvance(midi) {
+    var F = S.follow, song = F.song;
+    if (F.done) { F.lastSung = midi; updateRecogUI(); return; }
+    var sungInt = midi - F.lastSung;
+    var advanced = false;
+    if (F.pos + 1 < song.notes.length) {
+      var gi = song.notes[F.pos + 1] - song.notes[F.pos];
+      if (Math.abs(sungInt - gi) <= 1) { F.pos++; advanced = true; }
+    }
+    if (!advanced && F.pos + 2 < song.notes.length) {
+      var exp2 = F.lastSung + (song.notes[F.pos + 2] - song.notes[F.pos]);
+      if (Math.abs(midi - exp2) <= 1) { F.pos += 2; advanced = true; }
+    }
+    F.lastSung = midi;
+    if (advanced) {
+      F.misses = 0;
+      if (F.pos >= song.notes.length - 1) F.done = true;
+    } else {
+      F.misses++;
+      if (F.misses >= 3) {
+        stopFollow("I lost the thread of \u201C" + song.title + "\u201D — keep singing from a part you know well, and I'll listen for it again.");
+        return;
+      }
+    }
+    updateRecogUI();
+  }
+
+  var baseRefreshPanels = refreshPanels;
+  refreshPanels = function () {
+    baseRefreshPanels();
+    updateRecogUI();
+  };
+
+  /* ================= recognition panel ================= */
+  function updateRecogUI() {
+    var stateTxt, title, text;
+    ui.btnFollow.hidden = true;
+    ui.btnNotSong.hidden = true;
+    ui.btnStopFollow.hidden = true;
+    ui.btnTryAgain.hidden = S.mode !== "live";
+    if (S.follow) {
+      var song = S.follow.song;
+      stateTxt = S.follow.fromPlay ? "Playing from the library" : "Following you live";
+      title = S.follow.done ? "\u201C" + song.title + "\u201D — the end" : "Following: \u201C" + song.title + "\u201D";
+      text = S.follow.done
+        ? "You reached the last note — the piano played the song's own melody and chords with you all the way, and the bass guitar joined from the second time around."
+        : "Note " + (S.follow.pos + 1) + " of " + song.notes.length + " — the grand piano is playing this song (its stored melody and chords) with a steady beat" +
+          ((S.follow.pass && S.follow.pass >= 2) || bassActive(S.accomp) ? ", and the bass guitar is now playing underneath." : " — the bass guitar joins the second time around.");
+      ui.btnStopFollow.hidden = S.follow.fromPlay;
+    } else if (S.matchCandidate) {
+      var cand = S.matchCandidate;
+      stateTxt = "Best guess";
+      title = "This looks like… \u201C" + cand.song.title + "\u201D";
+      text = Math.round(cand.score * 100) + "% match over the last " + cand.notes + " notes. " + cand.song.origin +
+        " It is stored in " + cand.song.key + ", but you are singing it in your own key — which is exactly how the matching is designed to work. Open it, and the grand piano opens with the song — melody and chords over a steady beat, in your key — and the bass guitar joins the second time around. Wrong song? Tap \u201CNot this song\u201D and keep singing — I'll keep trying.";
+      ui.btnFollow.hidden = false;
+      ui.btnNotSong.hidden = false;
+    } else if (S.mode === "live") {
+      var nowMs = performance.now();
+      var inWindow = S.guessStart && (nowMs - S.guessStart) < 10000;
+      if (S._recogMsg) {
+        stateTxt = "Listening for a library song";
+        title = "Sing a song — I'll try to name it";
+        text = S._recogMsg;
+      } else if (inWindow) {
+        var left = Math.max(1, Math.ceil((10000 - (nowMs - S.guessStart)) / 1000));
+        stateTxt = "Guessing — " + left + "s left in this attempt";
+        title = "Listening… I'll show my best guess within 10 seconds";
+        text = "Hearing you — " + S.sungSeq.length + " notes so far. The moment a library song matches, my guess appears here; if nothing fits by 10 seconds, I'll tell you plainly that I'm not sure yet.";
+      } else if (S.sungSeq.length >= 3) {
+        stateTxt = "Not sure yet";
+        title = "I'm not sure yet";
+        text = "That stretch didn't match a library song closely enough — it may not be in the starter library yet, or I need a clearer run of the melody. Keep singing and I'll keep trying in the background, or tap Try again for a fresh 10-second attempt.";
+      } else {
+        stateTxt = "Listening for a library song";
+        title = "Sing a song — I'll try to name it";
+        text = "Your notes are compared against the library by the gaps between the notes and their rhythm — plain on-device maths, no AI model, no server — so it works in any key you choose to sing in.";
+      }
+    } else if (S.mode === "demo") {
+      stateTxt = "Playing";
+      title = "Now playing";
+      text = "Singer and partner are performing together. Press Start and sing instead, and I'll listen for a library song in your voice.";
+    } else {
+      stateTxt = "Not listening";
+      title = "Sing a song — I'll try to name it";
+      text = S._recogMsg || "Start singing with the microphone on. Your notes are compared against the library by the gaps between the notes and their rhythm — plain on-device maths, no AI model, no server — so it works in any key you choose to sing in.";
+    }
+    ui.recogState.textContent = stateTxt;
+    ui.recogTitle.textContent = title;
+    ui.recogText.textContent = text;
+  }
+
+  /* ================= controls ================= */
+  ui.btnStart.addEventListener("click", function () {
+    if (S.mode === "live") stopLive();
+    else if (S.mode === "demo") stopDemo(false);
+    else startLive();
+  });
+  ui.btnDemo.addEventListener("click", function () {
+    if (S.mode === "idle") startDemo(null);
+  });
+  ui.btnCar.addEventListener("click", function () {
+    var on = document.body.classList.toggle("car");
+    ui.btnCar.classList.toggle("on", on);
+    ui.btnCar.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  ui.styleSeg.addEventListener("click", function (e) {
+    var b = e.target;
+    while (b && !(b.getAttribute && b.getAttribute("data-style"))) b = b.parentElement;
+    if (!b) return;
+    var btns = ui.styleSeg.querySelectorAll("[data-style]");
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle("active", btns[i] === b);
+    S.styleMode = b.getAttribute("data-style");
+    if (S.styleMode === "auto") {
+      ui.styleDesc.textContent = AUTO_DESC;
+    } else {
+      S.activeStyle = S.styleMode;
+      ui.styleDesc.textContent = STYLES[S.styleMode].desc;
+    }
+    refreshPanels();
+  });
+  ui.volRange.addEventListener("input", function () {
+    S.partnerVol = this.value / 100;
+    ui.volVal.textContent = this.value + "%";
+    if (S.bus && S.ctx) S.bus.accomp.gain.setTargetAtTime(S.partnerVol * 0.9, S.ctx.currentTime, 0.05);
+  });
+  ui.btnReset.addEventListener("click", function () {
+    clearCurrentNote(performance.now());
+    S.singSeconds = 0; S.notesSung = 0; S.partnerNotes = 0;
+    S.minMidi = null; S.maxMidi = null; S.longestNote = 0;
+    S.pitchCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    S.durations = []; S.noteStartTimes = []; S.contour = [];
+    S.partnerMidi = null;
+    S.sungSeq = []; S.matchCandidate = null; S.suppressed = {};
+    if (S.follow && !S.follow.fromPlay) { S.follow = null; stopAccomp(); }
+    S._recogMsg = null;
+    refreshPanels();
+  });
+  ui.btnFollow.addEventListener("click", openFollow);
+  ui.btnNotSong.addEventListener("click", function () {
+    if (S.matchCandidate) {
+      S.suppressed[S.matchCandidate.song.id] = S.sungSeq.length;
+      S.matchCandidate = null;
+    }
+    updateRecogUI();
+  });
+  ui.btnStopFollow.addEventListener("click", function () {
+    stopFollow("Stopped following. Keep singing — I'll keep listening for a library song.");
+  });
+  ui.btnTryAgain.addEventListener("click", function () {
+    if (S.follow && !S.follow.fromPlay) { S.follow = null; stopAccomp(); }
+    S.sungSeq = [];
+    S.matchCandidate = null;
+    S.guessStart = null;
+    S._recogMsg = null;
+    updateRecogUI();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.code !== "Space") return;
+    var tag = e.target && e.target.tagName ? e.target.tagName : "";
+    if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") return;
+    e.preventDefault();
+    ui.btnStart.click();
+  });
+
+  /* ================= floating notes: the real notes, visualised =================
+     Every floating note is a real one — never decoration. A floating note
+     is spawned ONLY when a note is actually detected from the singer's
+     voice, or actually played from a library song that is playing or
+     being followed. When the page is idle, or listening with no note
+     detected yet, NO notes are drawn anywhere: the stage and the page
+     background stay completely clean. */
+  ui.notesBg = el("notesBg");
+  ui.notesStage = el("notesStage");
+  var NOTES_PAGE = [], NOTES_STAGE = [];
+  var NOTE_GLYPHS = ["♩", "♪", "♫", "♬"];
+  function pcHue(midi) { return ((midi % 12) * 30 + 8) % 360; }
+  function pushParticle(list, midi, strength, W, H) {
+    if (W < 40 || H < 40) return;
+    if (list.length > 42) list.shift();
+    var active = strength > 0.5;
+    list.push({
+      midi: midi,
+      glyph: NOTE_GLYPHS[Math.floor(Math.random() * NOTE_GLYPHS.length)],
+      x: W * (0.16 + Math.random() * 0.68),
+      y: H * (active ? 0.86 : 0.92),
+      vx: (active ? 13 : 4) + Math.random() * 10,
+      vy: -(active ? 23 + Math.max(0, midi - 52) * 1.15 : 8 + Math.random() * 6),
+      size: active ? 30 + Math.random() * 13 : 20 + Math.random() * 10,
+      peak: active ? 0.55 : 0.13,
+      life: 0,
+      ttl: active ? 7 + Math.random() * 3 : 11 + Math.random() * 4,
+      phase: Math.random() * 6.283
+    });
+  }
+  function spawnFloatingNote(midi) {
+    pushParticle(NOTES_PAGE, midi, 1, window.innerWidth, window.innerHeight);
+    var r = ui.notesStage.getBoundingClientRect();
+    pushParticle(NOTES_STAGE, midi, 1, r.width, r.height);
+  }
+  function drawParticleLayer(canvas, list, ts, dt) {
+    if (!canvas) return;
+    var r = canvas.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) return;
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    var W = Math.max(2, Math.round(r.width * d)), H = Math.max(2, Math.round(r.height * d));
+    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+    var c = canvas._ctx || (canvas._ctx = canvas.getContext("2d"));
+    c.setTransform(d, 0, 0, d, 0, 0);
+    c.clearRect(0, 0, r.width, r.height);
+    var motion = REDUCED ? 0.15 : 1;
+    c.textAlign = "center";
+    for (var i = list.length - 1; i >= 0; i--) {
+      var p = list[i];
+      p.life += dt;
+      if (p.life > p.ttl || p.y < -56) { list.splice(i, 1); continue; }
+      p.x += (p.vx + Math.sin(ts / 1100 + p.phase) * 7) * dt * motion;
+      p.y += p.vy * dt * motion;
+      var fadeIn = Math.min(1, p.life / 0.9);
+      var fadeOut = Math.min(1, Math.max(0, (p.ttl - p.life) / 1.6));
+      var a = p.peak * fadeIn * fadeOut * (REDUCED ? 0.85 : 1);
+      if (a <= 0.004) continue;
+      var hue = pcHue(p.midi);
+      c.font = Math.round(p.size * 1.6) + "px sans-serif";
+      c.fillStyle = "hsla(" + hue + ", 85%, 55%, " + (a * 0.20) + ")";
+      c.fillText(p.glyph, p.x, p.y);
+      c.font = Math.round(p.size) + "px sans-serif";
+      c.fillStyle = "hsla(" + hue + ", 85%, 52%, " + a + ")";
+      c.fillText(p.glyph, p.x, p.y);
+      c.font = "700 " + Math.max(10, Math.round(p.size * 0.36)) + "px sans-serif";
+      c.fillStyle = "hsla(" + hue + ", 75%, 46%, " + Math.min(0.95, a * 1.5) + ")";
+      c.fillText(noteName(p.midi), p.x, p.y + p.size * 0.52);
+    }
+  }
+  function updateFloatingNotes(ts, dt) {
+    // Nothing is spawned here. Particles enter only through
+    // spawnFloatingNote(), which the main loop calls for a note that was
+    // really sung (live) or really played (a library song playing or
+    // followed). Idle and not-yet-singing states draw no notes at all.
+    drawParticleLayer(ui.notesBg, NOTES_PAGE, ts, dt);
+    drawParticleLayer(ui.notesStage, NOTES_STAGE, ts, dt);
+  }
+
+  /* ================= boot ================= */
+  renderLibrary();
+  refreshPanels();
+  updateRecogUI();
+})();
+</script>
+  </body>
+</html>
