@@ -369,6 +369,213 @@
       body.car .seg-btn { min-height: 58px; font-size: 17px; padding: 14px 20px; }
       body.car select { min-height: 60px; font-size: 18px; }
       body.car .how-card, body.car footer { display: none; }
+
+      /* ================= LIVE JAM STATION (added console) =================
+         A dark pro-console view added on top of the sing screen. Every
+         control here drives real WebAudio nodes and the real library
+         data — nothing is decorative. */
+      #jamStation {
+        position: fixed; inset: 0; z-index: 60; overflow-y: auto;
+        background: #0f0f13; color: #f0f0f5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        padding: 14px 14px 40px;
+      }
+      #jamStation[hidden] { display: none; }
+      .jam-inner { max-width: 1220px; margin: 0 auto; }
+      .jam-head {
+        display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+        background: #181820; border: 1px solid #30303c; border-radius: 16px;
+        padding: 14px 18px;
+      }
+      .jam-title { font-weight: 800; letter-spacing: 0.06em; font-size: 17px; }
+      .jam-title small { display: block; font-weight: 600; letter-spacing: 0.02em; color: #9a9aad; font-size: 11.5px; margin-top: 2px; }
+      .jam-head .jam-chip {
+        background: #202028; border: 1px solid #30303c; border-radius: 10px;
+        padding: 7px 12px; font-size: 12.5px; color: #c9c9d6;
+      }
+      .jam-head .jam-chip b { color: #00ffcc; font-weight: 700; }
+      .jam-head .jam-chip b.warn { color: #ffcc00; }
+      #jamSpec { width: 150px; height: 40px; background: #09090d; border: 1px solid #30303c; border-radius: 8px; }
+      .jam-close {
+        margin-left: auto; background: #2c2c36; color: #fff; border: 1px solid #3c3c46;
+        border-radius: 10px; padding: 10px 16px; font-weight: 700; cursor: pointer; min-height: 44px;
+      }
+      .jam-tabs { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+      .jam-tab {
+        flex: 1 1 110px; background: #181820; color: #c9c9d6; border: 1px solid #30303c;
+        border-radius: 12px; padding: 12px 8px; font-weight: 700; font-size: 14px; cursor: pointer; min-height: 48px;
+      }
+      .jam-tab.active { background: #00ffcc; color: #06231c; border-color: #00ffcc; }
+      .jam-panel { display: none; }
+      .jam-panel.active { display: block; }
+      .jam-card {
+        background: #181820; border: 1px solid #30303c; border-radius: 16px; padding: 16px;
+      }
+      .jam-card h3 { margin: 0 0 4px; color: #00ffcc; font-size: 15px; letter-spacing: 0.03em; }
+      .jam-card .jam-sub { color: #9a9aad; font-size: 12.5px; margin: 0 0 12px; }
+
+      /* mixer */
+      .jam-channels { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+      .jam-chan {
+        background: #202028; border: 1px solid #30303c; border-radius: 14px;
+        padding: 10px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+        min-width: 0;
+      }
+      .jam-chan .ch-name { font-weight: 800; font-size: 12px; letter-spacing: 0.08em; color: var(--chc, #00ffcc); text-align: center; }
+      .jam-chan .ch-meter { width: 10px; height: 96px; background: #09090d; border-radius: 5px; overflow: hidden; display: flex; align-items: flex-end; }
+      .jam-chan .ch-meter i { display: block; width: 100%; background: linear-gradient(to top, #00ffcc 55%, #ffcc00 78%, #ff4444 96%); height: 0%; }
+      .jam-fader {
+        position: relative; width: 44px; height: 130px; background: #14141a; border: 1px solid #30303c;
+        border-radius: 8px; touch-action: none; cursor: ns-resize;
+      }
+      .jam-fader::before { content: ""; position: absolute; left: 50%; top: 8px; bottom: 8px; width: 4px; margin-left: -2px; background: #30303c; border-radius: 2px; }
+      .jam-fader .thumb {
+        position: absolute; left: 4px; right: 4px; height: 22px; border-radius: 5px;
+        background: linear-gradient(#4a4a58, #2c2c36); border: 1px solid #565664;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      }
+      .jam-fader .thumb::after { content: ""; position: absolute; left: 5px; right: 5px; top: 10px; height: 2px; background: var(--chc, #00ffcc); }
+      .jam-chan .ch-val { font-family: monospace; font-size: 11px; color: #9a9aad; }
+      .jam-ms { display: flex; gap: 6px; }
+      .jam-ms button {
+        border: 1px solid #3c3c46; background: #2c2c36; color: #ddd; border-radius: 7px;
+        font-size: 10.5px; font-weight: 800; padding: 7px 8px; cursor: pointer; min-height: 34px; letter-spacing: 0.04em;
+      }
+      .jam-ms button.mute.on { background: #ff4444; color: #fff; border-color: #ff4444; }
+      .jam-ms button.solo.on { background: #ffcc00; color: #201a00; border-color: #ffcc00; }
+      .jam-master {
+        margin-top: 12px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px;
+      }
+      .jam-master .jam-card { padding: 14px 16px; }
+      .jam-vu { height: 16px; background: #09090d; border-radius: 8px; overflow: hidden; margin-top: 8px; }
+      .jam-vu i { display: block; height: 100%; width: 0%; background: linear-gradient(to right, #00ffcc 60%, #ffcc00 82%, #ff4444 97%); }
+      .jam-hfader { position: relative; height: 40px; background: #14141a; border: 1px solid #30303c; border-radius: 8px; touch-action: none; cursor: ew-resize; margin-top: 8px; }
+      .jam-hfader::before { content: ""; position: absolute; top: 50%; left: 8px; right: 8px; height: 4px; margin-top: -2px; background: #30303c; border-radius: 2px; }
+      .jam-hfader .thumb { position: absolute; top: 4px; bottom: 4px; width: 22px; border-radius: 5px; background: linear-gradient(90deg, #4a4a58, #2c2c36); border: 1px solid #565664; }
+      .jam-seg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+      .jam-seg button {
+        flex: 1 1 auto; background: #2c2c36; color: #ddd; border: 1px solid #3c3c46; border-radius: 8px;
+        padding: 10px 8px; font-weight: 700; font-size: 12.5px; cursor: pointer; min-height: 42px;
+      }
+      .jam-seg button.on { background: #00ffcc; color: #06231c; border-color: #00ffcc; }
+      .jam-kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid #26262f; font-size: 13px; }
+      .jam-kv:last-child { border-bottom: none; }
+      .jam-kv span { color: #9a9aad; }
+      .jam-kv b { color: #f0f0f5; text-align: right; }
+
+      /* library */
+      .jam-lib-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+      .jam-searchrow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+      .jam-searchrow input[type="search"], .jam-searchrow select, .jam-pl-name {
+        background: #09090d; color: #f0f0f5; border: 1px solid #30303c; border-radius: 10px;
+        padding: 11px 12px; font-size: 14px; min-height: 44px;
+      }
+      .jam-searchrow input[type="search"] { flex: 1 1 170px; }
+      .jam-btn {
+        background: #2c2c36; color: #fff; border: 1px solid #3c3c46; border-radius: 10px;
+        padding: 11px 14px; font-weight: 700; cursor: pointer; min-height: 44px; font-size: 13.5px;
+      }
+      .jam-btn.acc { background: #00ffcc; color: #06231c; border-color: #00ffcc; }
+      .jam-btn:disabled { opacity: 0.45; cursor: default; }
+      .jam-songlist { max-height: 430px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+      .jam-song {
+        display: flex; gap: 8px; align-items: center; background: #202028; border: 1px solid #30303c;
+        border-radius: 10px; padding: 9px 10px; cursor: pointer; text-align: left; width: 100%; color: #f0f0f5;
+      }
+      .jam-song.sel { border-color: #00ffcc; box-shadow: 0 0 0 1px #00ffcc inset; }
+      .jam-song.playing { border-color: #ffcc00; }
+      .jam-song .t { flex: 1 1 auto; min-width: 0; }
+      .jam-song .t b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .jam-song .t small { color: #9a9aad; font-size: 11.5px; }
+      .jam-song .mini {
+        flex: none; background: #2c2c36; border: 1px solid #3c3c46; color: #fff; border-radius: 7px;
+        font-size: 11px; font-weight: 700; padding: 8px 9px; cursor: pointer; min-height: 36px;
+      }
+      .jam-song .mini.play { background: #00ffcc; color: #06231c; border-color: #00ffcc; }
+      .jam-notes {
+        background: #09090d; border: 1px solid #30303c; border-radius: 12px; padding: 10px;
+        max-height: 300px; overflow-y: auto; line-height: 2.1;
+      }
+      .jam-notes .nv-note {
+        display: inline-block; background: #202028; border: 1px solid #30303c; color: #c9c9d6;
+        border-radius: 6px; padding: 1px 6px; margin: 0 3px 3px 0; font-size: 12px; font-family: monospace;
+      }
+      .jam-notes .nv-note.now { background: #00ffcc; color: #06231c; border-color: #00ffcc; font-weight: 800; }
+      .jam-transport { display: flex; gap: 8px; margin-top: 12px; }
+      .jam-transport .jam-btn { flex: 1; font-size: 15px; }
+      .jam-pl-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+      .jam-pl-item { display: flex; gap: 8px; align-items: center; background: #202028; border: 1px solid #30303c; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+      .jam-pl-item .t { flex: 1; min-width: 0; }
+      .jam-note-txt { color: #9a9aad; font-size: 12.5px; line-height: 1.5; }
+
+      /* FX */
+      .jam-fx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+      .xy-pad {
+        position: relative; width: 100%; aspect-ratio: 1/1; background: #09090d; border: 1px solid #30303c;
+        border-radius: 12px; touch-action: none; cursor: crosshair; overflow: hidden;
+      }
+      .xy-pad::before, .xy-pad::after { content: ""; position: absolute; background: #23232d; }
+      .xy-pad::before { left: 50%; top: 0; bottom: 0; width: 1px; }
+      .xy-pad::after { top: 50%; left: 0; right: 0; height: 1px; }
+      .xy-puck {
+        position: absolute; width: 34px; height: 34px; border-radius: 50%; transform: translate(-50%, -50%);
+        border: 2px solid #fff; pointer-events: none; z-index: 2;
+      }
+      .xy-puck.f1 { background: #ff00ff; box-shadow: 0 0 16px #ff00ff; }
+      .xy-puck.f2 { background: #ffff00; box-shadow: 0 0 16px #ffff00; }
+      .xy-read { display: flex; justify-content: space-between; font-family: monospace; font-size: 11.5px; color: #9a9aad; margin-top: 8px; }
+      .jam-bypass { width: 100%; margin-top: 12px; background: #555; color: #fff; border: none; border-radius: 10px; padding: 13px; font-weight: 800; cursor: pointer; min-height: 48px; letter-spacing: 0.03em; }
+      .jam-bypass.off { background: #ff00ff; color: #101010; box-shadow: 0 0 10px #ff00ff; }
+      .jam-bypass.off.f2b { background: #ffff00; box-shadow: 0 0 10px #ffff00; }
+      .jam-knobs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; justify-items: center; }
+      .jam-knob-g { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+      .jam-knob {
+        width: 76px; height: 76px; border-radius: 50%; background: #2c2c36; border: 5px solid #30303c;
+        position: relative; touch-action: none; cursor: ns-resize;
+      }
+      .jam-knob i {
+        position: absolute; left: 50%; top: 6px; width: 6px; height: 30px; margin-left: -3px;
+        background: #00ffcc; border-radius: 3px; transform-origin: 3px 32px;
+      }
+      .jam-knob-g .kl { font-weight: 700; font-size: 13.5px; }
+      .jam-knob-g .kv2 { font-family: monospace; font-size: 12px; color: #00ffcc; }
+      .jam-knob-g small { color: #777; font-size: 10.5px; }
+
+      /* system */
+      .jam-sys-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+      .sys-meter { display: flex; align-items: center; gap: 10px; background: #2c2c36; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; }
+      .sys-meter .bar { flex: 1; height: 10px; background: #181820; border-radius: 5px; overflow: hidden; }
+      .sys-meter .bar i { display: block; height: 100%; width: 0%; background: #00ffcc; }
+      .sys-meter .db { font-family: monospace; font-size: 12px; color: #c9c9d6; min-width: 52px; text-align: right; }
+      .jam-light { width: 12px; height: 12px; border-radius: 50%; background: #ff4444; flex: none; }
+      .jam-light.ok { background: #00ff00; box-shadow: 0 0 9px #00ff00; }
+      .jam-light.mid { background: #ffcc00; box-shadow: 0 0 9px #ffcc00; }
+      .rec-time { font-size: 30px; text-align: center; font-family: "Courier New", monospace; color: #ff4444; margin: 6px 0 10px; }
+      .rec-btns { display: flex; gap: 10px; justify-content: center; }
+      .rec-btn { padding: 14px 26px; border-radius: 12px; font-weight: 800; cursor: pointer; border: none; min-height: 50px; }
+      .rec-arm { background: #555; color: #fff; }
+      .rec-arm.armed { background: #ff4444; }
+      .rec-go { background: #00ffcc; color: #06231c; }
+      .rec-go.recording { background: #fff; color: #101010; animation: jamPulse 1s infinite; }
+      .rec-btn:disabled { opacity: 0.4; cursor: default; }
+      @keyframes jamPulse { 50% { opacity: 0.55; } }
+      .rec-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+      .rec-item { background: #202028; border: 1px solid #30303c; border-radius: 10px; padding: 9px 10px; font-size: 12.5px; }
+      .rec-item audio { width: 100%; margin-top: 6px; height: 34px; }
+      .rec-item a { color: #00ffcc; font-weight: 700; }
+
+      @media (max-width: 900px) {
+        .jam-channels { grid-template-columns: repeat(4, 1fr); }
+        .jam-fx-grid, .jam-sys-grid { grid-template-columns: 1fr; }
+        .jam-lib-grid { grid-template-columns: 1fr; }
+        .jam-master { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 430px) {
+        .jam-channels { grid-template-columns: repeat(3, 1fr); }
+        #jamSpec { display: none; }
+        .jam-fader { height: 112px; }
+      }
+
     </style>
   </head>
   <body>
@@ -431,6 +638,10 @@
         <button class="btn ghost toggle" id="btnCar" type="button" aria-pressed="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H8.2c-.8 0-1.5.4-1.9 1.1L4.6 11l-2.1.3C1.6 11.4 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
           <span>Car mode</span>
+        </button>
+        <button class="btn ghost" id="btnJam" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M12 3v4M12 13v8"/></svg>
+          <span>Live Jam Station</span>
         </button>
       </div>
       <p class="mic-note" id="micNote">The microphone is only used while you are singing, and the sound is analysed on this device — it is never recorded or sent anywhere.</p>
@@ -546,6 +757,164 @@
       <footer>Sing Together — sing a line, the piano joins in.</footer>
     </div>
 
+    <!-- ================= LIVE JAM STATION ================= -->
+    <div id="jamStation" hidden role="dialog" aria-label="Live Jam Station">
+      <div class="jam-inner">
+        <div class="jam-head">
+          <div class="jam-title">LIVE JAM STATION<small>MASTER CONTROL · SING TOGETHER</small></div>
+          <div class="jam-chip">SESSION: <b id="jamSessName">Free session</b></div>
+          <div class="jam-chip">BPM <b id="jamBpm">—</b></div>
+          <div class="jam-chip">GLOBAL SYNC: <b id="jamSync">STANDBY</b></div>
+          <canvas id="jamSpec" width="300" height="80" aria-hidden="true"></canvas>
+          <button class="jam-close" id="jamClose" type="button">✕ Back to singing</button>
+        </div>
+
+        <div class="jam-tabs" role="tablist">
+          <button class="jam-tab active" type="button" data-jtab="mixer">Mixer</button>
+          <button class="jam-tab" type="button" data-jtab="library">Library</button>
+          <button class="jam-tab" type="button" data-jtab="fx">Performance FX</button>
+          <button class="jam-tab" type="button" data-jtab="system">System</button>
+        </div>
+
+        <!-- MIXER -->
+        <div class="jam-panel active" id="jamPanel-mixer">
+          <div class="jam-channels" id="jamChannels"></div>
+          <div class="jam-master">
+            <div class="jam-card">
+              <h3>Master Section</h3>
+              <p class="jam-sub">The real master output of everything you hear.</p>
+              <div class="jam-kv"><span>Master level</span><b id="jamMasterVal">90%</b></div>
+              <div class="jam-hfader" id="jamMasterFader"><div class="thumb"></div></div>
+              <div class="jam-vu"><i id="jamVu"></i></div>
+            </div>
+            <div class="jam-card">
+              <h3>Vocal Blend</h3>
+              <p class="jam-sub">A harmony voice built from the song's real melody — a third up, or a third + fifth.</p>
+              <div class="jam-seg" id="jamBlendSeg">
+                <button type="button" data-blend="off">Off</button>
+                <button type="button" data-blend="low" class="on">Low Harmony</button>
+                <button type="button" data-blend="full">Full Harmony</button>
+              </div>
+              <div class="jam-kv" style="margin-top:10px"><span>Blend state</span><b id="jamBlendState">Active (Low Harmony)</b></div>
+            </div>
+            <div class="jam-card">
+              <h3>Session</h3>
+              <div class="jam-kv"><span>Playlist</span><b id="jamPlaylistName">All songs</b></div>
+              <div class="jam-kv"><span>Now playing</span><b id="jamNowPlaying">—</b></div>
+              <div class="jam-kv"><span>Next up</span><b id="jamNextUp">—</b></div>
+              <div class="jam-kv"><span>Sync status</span><b id="jamSync2">STANDBY</b></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIBRARY -->
+        <div class="jam-panel" id="jamPanel-library">
+          <div class="jam-lib-grid">
+            <div class="jam-card">
+              <h3>Song Library</h3>
+              <p class="jam-sub" id="jamLibCount">Loading your library…</p>
+              <div class="jam-searchrow">
+                <input type="search" id="jamSearch" placeholder="Search your songs…" aria-label="Search songs" />
+                <select id="jamCatFilter" aria-label="Category filter"><option value="">All categories</option></select>
+                <button class="jam-btn" id="jamImport" type="button">+ Import</button>
+              </div>
+              <p class="jam-note-txt" id="jamImportNote" hidden>Your songs come from your Google Drive folder “Skver songs”. All of them were already converted and imported into this library — <span id="jamImportCount"></span> songs — so there is nothing left to import. New songs added to that Drive folder are brought in when the library is next updated.</p>
+              <div class="jam-songlist" id="jamSongList"></div>
+              <p class="jam-note-txt" id="jamListNote"></p>
+              <div class="jam-transport">
+                <button class="jam-btn" id="jamPrev" type="button">⏮ Prev</button>
+                <button class="jam-btn acc" id="jamPlayPause" type="button">▶ Play</button>
+                <button class="jam-btn" id="jamNext" type="button">Next ⏭</button>
+              </div>
+            </div>
+            <div>
+              <div class="jam-card">
+                <h3>Notes Viewer</h3>
+                <p class="jam-sub" id="jamNvMeta">Pick a song and its real notes appear here. During playback the current note lights up and the view scrolls along with the music.</p>
+                <div class="jam-notes" id="jamNotes"><span class="jam-note-txt">No song selected yet.</span></div>
+              </div>
+              <div class="jam-card" style="margin-top:12px">
+                <h3>Playlists</h3>
+                <p class="jam-sub">Build a playlist from the library (tap + on songs), name it and save — playlists stay on this device.</p>
+                <div class="jam-searchrow">
+                  <input class="jam-pl-name" id="jamPlName" type="text" placeholder="Playlist name" style="flex:1 1 140px" />
+                  <button class="jam-btn acc" id="jamPlSave" type="button">Save</button>
+                </div>
+                <p class="jam-note-txt" id="jamPlDraft">Building: (empty)</p>
+                <div class="jam-pl-list" id="jamPlList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERFORMANCE FX -->
+        <div class="jam-panel" id="jamPanel-fx">
+          <div class="jam-fx-grid">
+            <div class="jam-card">
+              <h3>Master Filter <small style="color:#ff00ff">FX1</small></h3>
+              <p class="jam-sub">X/Y pad: X = filter cutoff · Y = drive. Real nodes on the master chain.</p>
+              <div class="xy-pad" id="jamPad1"><div class="xy-puck f1"></div></div>
+              <div class="xy-read"><span>X: Cutoff <span id="jamPad1x">100</span>%</span><span>Y: Drive <span id="jamPad1y">0</span>%</span></div>
+              <button class="jam-bypass" id="jamBypass1" type="button">FX1 ACTIVE — TAP TO BYPASS</button>
+            </div>
+            <div class="jam-card">
+              <h3>Time &amp; Space <small style="color:#ffff00">FX2</small></h3>
+              <p class="jam-sub">X/Y pad: X = delay size · Y = feedback, with a real generated-impulse reverb in the chain.</p>
+              <div class="xy-pad" id="jamPad2"><div class="xy-puck f2"></div></div>
+              <div class="xy-read"><span>X: Size <span id="jamPad2x">25</span>%</span><span>Y: F.Back <span id="jamPad2y">30</span>%</span></div>
+              <button class="jam-bypass f2b" id="jamBypass2" type="button">FX2 ACTIVE — TAP TO BYPASS</button>
+            </div>
+            <div class="jam-card">
+              <h3>Performance Macros</h3>
+              <p class="jam-sub">Drag a knob up or down. Each one drives real master-chain processing.</p>
+              <div class="jam-knobs">
+                <div class="jam-knob-g"><div class="jam-knob" data-macro="riser"><i></i></div><span class="kl">Riser</span><span class="kv2" data-macro-val="riser">0%</span><small>(Filter + Reverb swell)</small></div>
+                <div class="jam-knob-g"><div class="jam-knob" data-macro="stutter"><i></i></div><span class="kl">Stutter</span><span class="kv2" data-macro-val="stutter">0%</span><small>(Beat-repeat at song tempo)</small></div>
+                <div class="jam-knob-g"><div class="jam-knob" data-macro="lofi"><i></i></div><span class="kl">Lo-Fi</span><span class="kv2" data-macro-val="lofi">0%</span><small>(Bit-crush + lowpass)</small></div>
+                <div class="jam-knob-g"><div class="jam-knob" data-macro="glitch"><i></i></div><span class="kl">Glitch</span><span class="kv2" data-macro-val="glitch">0%</span><small>(Grain burst repeats)</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SYSTEM -->
+        <div class="jam-panel" id="jamPanel-system">
+          <div class="jam-sys-grid">
+            <div class="jam-card">
+              <h3>Global Audio</h3>
+              <p class="jam-sub">Live meters from the real microphone analyser and the real master output.</p>
+              <div class="sys-meter"><span style="min-width:48px">Input</span><div class="bar"><i id="jamInMeter"></i></div><span class="db" id="jamInDb">—</span></div>
+              <div class="sys-meter"><span style="min-width:48px">Output</span><div class="bar"><i id="jamOutMeter"></i></div><span class="db" id="jamOutDb">—</span></div>
+              <div class="jam-kv"><span>Sample rate</span><b id="jamSr">—</b></div>
+              <div class="jam-kv"><span>Output latency</span><b id="jamLat">—</b></div>
+              <div class="jam-kv"><span>Audio engine</span><b id="jamCtxState">Not started</b></div>
+            </div>
+            <div class="jam-card">
+              <h3>Session Recording</h3>
+              <p class="jam-sub">Records a real mix of your microphone and the accompaniment, on this device only.</p>
+              <div class="rec-time" id="jamRecTime">00:00:00</div>
+              <div class="rec-btns">
+                <button class="rec-btn rec-arm" id="jamRecArm" type="button">ARM</button>
+                <button class="rec-btn rec-go" id="jamRecGo" type="button" disabled>REC</button>
+              </div>
+              <div class="rec-list" id="jamRecList"><p class="jam-note-txt">No recordings yet this session. Recordings stay in this page — download any take you want to keep.</p></div>
+            </div>
+            <div class="jam-card">
+              <h3>System Status</h3>
+              <p class="jam-sub">Honest, live status — everything below is read from the real page state.</p>
+              <div class="jam-kv"><span style="display:flex;align-items:center;gap:8px"><i class="jam-light" id="jamLtLib"></i>Song library</span><b id="jamStLib">Loading…</b></div>
+              <div class="jam-kv"><span style="display:flex;align-items:center;gap:8px"><i class="jam-light" id="jamLtCache"></i>Offline cache</span><b id="jamStCache">—</b></div>
+              <div class="jam-kv"><span style="display:flex;align-items:center;gap:8px"><i class="jam-light" id="jamLtMic"></i>Microphone</span><b id="jamStMic">Off</b></div>
+              <div class="jam-kv"><span style="display:flex;align-items:center;gap:8px"><i class="jam-light" id="jamLtAudio"></i>Audio engine</span><b id="jamStAudio">Not started</b></div>
+              <p class="jam-note-txt" style="margin-top:10px">Multi-phone live jamming is not part of this station — sync here means this device locked to the song you are singing or playing, nothing more.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
     <script>
 (function () {
   "use strict";
@@ -647,13 +1016,26 @@
     var ctx = new AC();
     S.ctx = ctx;
 
-    var master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+    var master = ctx.createGain(); master.gain.value = 0.9;
+    var outAn = ctx.createAnalyser(); outAn.fftSize = 512;
+    master.connect(outAn); outAn.connect(ctx.destination);
 
     var accomp = ctx.createGain(); accomp.gain.value = S.partnerVol * 0.9;
-    accomp.connect(master);
+    var fx = jamBuildFx(ctx, master);
+    accomp.connect(fx.in);
     var conv = ctx.createConvolver(); conv.buffer = makeImpulse(ctx, 1.7, 2.6);
     var wet = ctx.createGain(); wet.gain.value = 0.22;
     conv.connect(wet); wet.connect(master);
+
+    /* Jam Station channel strips: every instrument layer gets its own
+       real gain + analyser strip, all feeding the accompaniment bus. */
+    var chG = {}, chA = {};
+    ["piano", "bass", "drums", "brass", "synth", "guitar", "vocals"].forEach(function (nm) {
+      var cg = ctx.createGain(); cg.gain.value = 0.9;
+      var can = ctx.createAnalyser(); can.fftSize = 256;
+      cg.connect(can); can.connect(accomp);
+      chG[nm] = cg; chA[nm] = can;
+    });
 
     var nlen = ctx.sampleRate;
     var nbuf = ctx.createBuffer(1, nlen, ctx.sampleRate);
@@ -661,7 +1043,8 @@
     for (var i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
     S.noiseBuf = nbuf;
 
-    S.bus = { master: master, accomp: accomp, verbIn: conv };
+    S.bus = { master: master, accomp: accomp, verbIn: conv, fx: fx, outAn: outAn, ch: chG, chAn: chA };
+    jamSyncBus();
     return ctx;
   }
 
@@ -672,7 +1055,7 @@
     var g = ctx.createGain();
     var lp = ctx.createBiquadFilter(); lp.type = "lowpass";
     lp.frequency.value = Math.min(6800, 900 + f * 4.2); lp.Q.value = 0.3;
-    g.connect(lp); lp.connect(S.bus.accomp); lp.connect(S.bus.verbIn);
+    g.connect(lp); lp.connect(S.bus.ch.piano); lp.connect(S.bus.verbIn);
     var end = t + Math.max(0.6, dur * 1.15 + 0.55);
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vel, t + 0.005);
@@ -691,7 +1074,7 @@
     var f = freqFromMidi(midi);
     var g = ctx.createGain();
     var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 540; lp.Q.value = 0.6;
-    g.connect(lp); lp.connect(S.bus.accomp);
+    g.connect(lp); lp.connect(S.bus.ch.bass);
     var end = t + Math.max(0.3, dur);
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vel, t + 0.009);
@@ -713,7 +1096,7 @@
     var g = ctx.createGain();
     g.gain.setValueAtTime(vel, t);
     g.gain.exponentialRampToValueAtTime(0.0008, t + 0.16);
-    o.connect(g); g.connect(S.bus.accomp);
+    o.connect(g); g.connect(S.bus.ch.drums);
     o.start(t); o.stop(t + 0.2);
   }
   function noiseHit(t, vel, type, freq, dur) {
@@ -724,7 +1107,7 @@
     var g = ctx.createGain();
     g.gain.setValueAtTime(vel, t);
     g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-    src.connect(flt); flt.connect(g); g.connect(S.bus.accomp);
+    src.connect(flt); flt.connect(g); g.connect(S.bus.ch.drums);
     src.start(t, Math.random() * 0.4); src.stop(t + dur + 0.05);
   }
   function hatHit(t, vel) { noiseHit(t, vel, "highpass", 7600, 0.055); }
@@ -788,6 +1171,7 @@
     var i = A.step, durBeats = song.beats[i], dur = durBeats * spb, t = A.nextTime;
     var midi = song.notes[i] + A.offset;
     pianoNote(midi, t, Math.max(dur, 0.4), 0.27 * cfg.piano);
+    jamStep(A, t, durBeats, midi);
     S.partnerMidi = midi;
     S.partnerNotes++;
     var startBeat = A.globalBeat, endBeat = startBeat + durBeats;
@@ -2256,6 +2640,886 @@
   // The full library loads in the background, after first paint — it
   // never blocks Start or anything else on the page.
   initFullLibrary();
+
+  /* ================= LIVE JAM STATION =================
+     An added console view. Every control drives real WebAudio nodes and
+     the song's real note data:
+       - Mixer channels are real gain+analyser strips inserted in
+         ensureCtx (piano / bass / drums are the existing instruments;
+         brass, synth and guitar are new layers scheduled from the
+         playing song's real chords and melody by jamStep, which
+         scheduleStep calls for every melody step; vocals is the Vocal
+         Blend harmony voice built from the real melody).
+       - Performance FX are real nodes on the master chain (jamBuildFx).
+       - Library runs on the same LIBRARY data as the sing screen.
+       - System meters read the real mic analyser and master analyser.
+     Nothing here fakes peers, network sync or song metadata. */
+
+  var JAM = {
+    open: false,
+    chanOrder: ["piano", "bass", "drums", "brass", "synth", "guitar", "vocals"],
+    chan: {
+      piano:  { label: "PIANO",  color: "#00c2ff", vol: 0.90, mute: false, solo: false },
+      bass:   { label: "BASS",   color: "#00ffcc", vol: 0.90, mute: false, solo: false },
+      drums:  { label: "DRUMS",  color: "#b388ff", vol: 0.90, mute: false, solo: false },
+      brass:  { label: "BRASS",  color: "#ffb300", vol: 0.80, mute: false, solo: false },
+      synth:  { label: "SYNTH",  color: "#69f0ae", vol: 0.80, mute: false, solo: false },
+      guitar: { label: "GUITAR", color: "#ff7043", vol: 0.80, mute: false, solo: false },
+      vocals: { label: "VOCALS", color: "#ffd54f", vol: 0.85, mute: false, solo: false }
+    },
+    masterVol: 0.9,
+    blend: "low",
+    fx1On: true, fx2On: true,
+    pad1: { x: 1, y: 0 }, pad2: { x: 0.25, y: 0.30 },
+    macros: { riser: 0, stutter: 0, lofi: 0, glitch: 0 },
+    sel: null, selPos: -2,
+    queue: null, queueName: "All songs", qpos: -1,
+    draft: [],
+    micTap: null,
+    rec: { armed: false, recording: false, mr: null, chunks: [], startedAt: 0, dest: null, count: 0, iv: null },
+    _tick: 0
+  };
+  var J = {}; // jam DOM refs, filled in jamInit
+
+  /* ---------- FX chain (built inside ensureCtx) ---------- */
+  function jamIdentityCurve() {
+    var c = new Float32Array(256);
+    for (var i = 0; i < 256; i++) c[i] = i / 127.5 - 1;
+    return c;
+  }
+  function jamDriveCurve(k) {
+    var n = 256, c = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = i / (n - 1) * 2 - 1;
+      c[i] = k < 0.5 ? x : (1 + k) * x / (1 + k * Math.abs(x));
+    }
+    return c;
+  }
+  function jamCrushCurve(amount) {
+    if (amount <= 0.02) return jamIdentityCurve();
+    var steps = Math.max(3, Math.round(64 * (1 - amount) + 4));
+    var n = 256, c = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = i / (n - 1) * 2 - 1;
+      c[i] = Math.round(x * steps) / steps;
+    }
+    return c;
+  }
+  function jamBuildFx(ctx, master) {
+    function G(v) { var g = ctx.createGain(); g.gain.value = v; return g; }
+    var input = G(1);
+    var stut = G(1), glit = G(1);
+    var lofiLP = ctx.createBiquadFilter(); lofiLP.type = "lowpass"; lofiLP.frequency.value = 19500; lofiLP.Q.value = 0.2;
+    var lofiSh = ctx.createWaveShaper(); lofiSh.curve = jamIdentityCurve();
+    var filter = ctx.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = 18000; filter.Q.value = 0.4;
+    var drive = ctx.createWaveShaper(); drive.curve = jamDriveCurve(0); drive.oversample = "2x";
+    var out = G(1);
+    var delay = ctx.createDelay(1.5); delay.delayTime.value = 0.22;
+    var fb = G(0.2);
+    var dWet = G(0);
+    var conv = ctx.createConvolver(); conv.buffer = makeImpulse(ctx, 2.8, 2.4);
+    var rWet = G(0);
+    input.connect(stut); stut.connect(glit); glit.connect(lofiLP);
+    lofiLP.connect(lofiSh); lofiSh.connect(filter); filter.connect(drive); drive.connect(out);
+    drive.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(dWet); dWet.connect(out);
+    drive.connect(conv); conv.connect(rWet); rWet.connect(out);
+    out.connect(master);
+    return { in: input, out: out, stut: stut, glit: glit, lofiLP: lofiLP, lofiSh: lofiSh,
+             filter: filter, drive: drive, delay: delay, fb: fb, dWet: dWet,
+             conv: conv, rWet: rWet, lfo: null, lfoGain: null };
+  }
+  function jamSyncBus() { jamApplyMixer(); jamApplyFx(); }
+  function jamApplyMixer() {
+    if (!S.bus || !S.bus.ch || !S.ctx) return;
+    var anySolo = JAM.chanOrder.some(function (n) { return JAM.chan[n].solo; });
+    var t = S.ctx.currentTime;
+    JAM.chanOrder.forEach(function (n) {
+      var c = JAM.chan[n];
+      var g = (c.mute || (anySolo && !c.solo)) ? 0 : Math.pow(c.vol, 1.5);
+      S.bus.ch[n].gain.setTargetAtTime(g, t, 0.03);
+    });
+    S.bus.master.gain.setTargetAtTime(JAM.masterVol, t, 0.03);
+  }
+  function jamTempo() {
+    if (S.accomp && S.accomp.song) return S.accomp.song.bpm;
+    if (S.playSong) return S.playSong.bpm;
+    return 100;
+  }
+  function jamApplyFx() {
+    var fx = S.bus && S.bus.fx;
+    if (!fx || !S.ctx) return;
+    var t = S.ctx.currentTime, m = JAM.macros;
+    var cutoff;
+    if (!JAM.fx1On) cutoff = 19500;
+    else {
+      cutoff = 240 * Math.pow(18000 / 240, JAM.pad1.x);
+      cutoff *= (1 + m.riser * 2.2);
+      if (m.lofi > 0) cutoff = Math.min(cutoff, 19500 - m.lofi * 15800);
+      cutoff = Math.max(120, Math.min(19800, cutoff));
+    }
+    fx.filter.frequency.setTargetAtTime(cutoff, t, 0.03);
+    fx.drive.curve = jamDriveCurve(JAM.fx1On ? JAM.pad1.y * 55 : 0);
+    fx.lofiLP.frequency.setTargetAtTime(19500 - m.lofi * 15000, t, 0.03);
+    fx.lofiSh.curve = jamCrushCurve(m.lofi);
+    var spb = 60 / jamTempo(), eighth = spb / 2;
+    var raw = 0.04 + JAM.pad2.x * 0.55;
+    var q = Math.max(1, Math.round(raw / eighth)) * eighth;
+    fx.delay.delayTime.setTargetAtTime(Math.min(1.2, q), t, 0.03);
+    fx.fb.gain.setTargetAtTime(JAM.fx2On ? JAM.pad2.y * 0.62 : 0, t, 0.03);
+    fx.dWet.gain.setTargetAtTime(JAM.fx2On ? 0.16 + JAM.pad2.y * 0.10 : 0, t, 0.03);
+    fx.rWet.gain.setTargetAtTime((JAM.fx2On ? 0.14 : 0) + m.riser * 0.30, t, 0.03);
+    jamStutterSync();
+  }
+  function jamStutterSync() {
+    var fx = S.bus && S.bus.fx;
+    if (!fx || !S.ctx) return;
+    var amt = JAM.macros.stutter;
+    if (amt > 0.03 && S.accomp) {
+      var depth = amt * 0.92;
+      if (!fx.lfo) {
+        fx.lfo = S.ctx.createOscillator(); fx.lfo.type = "square";
+        fx.lfoGain = S.ctx.createGain();
+        fx.lfo.connect(fx.lfoGain); fx.lfoGain.connect(fx.stut.gain);
+        fx.lfo.start();
+      }
+      fx.lfo.frequency.setTargetAtTime((jamTempo() / 60) * 2, S.ctx.currentTime, 0.05);
+      fx.stut.gain.setTargetAtTime(1 - depth / 2, S.ctx.currentTime, 0.02);
+      fx.lfoGain.gain.setTargetAtTime(depth / 2, S.ctx.currentTime, 0.02);
+    } else if (fx.lfo) {
+      try { fx.lfo.stop(); } catch (e) {}
+      try { fx.lfo.disconnect(); fx.lfoGain.disconnect(); } catch (e) {}
+      fx.lfo = null; fx.lfoGain = null;
+      fx.stut.gain.setTargetAtTime(1, S.ctx.currentTime, 0.02);
+    }
+  }
+
+  /* ---------- new instrument voices (all feed their channel strip) ---------- */
+  function jamChanDest(name) { return (S.bus && S.bus.ch && S.bus.ch[name]) || (S.bus && S.bus.accomp); }
+  function brassStab(tones, t, dur) {
+    var ctx = S.ctx; if (!ctx) return;
+    var dest = jamChanDest("brass");
+    tones.forEach(function (midi) {
+      var f = freqFromMidi(midi);
+      var g = ctx.createGain();
+      var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1750; lp.Q.value = 0.7;
+      g.connect(lp); lp.connect(dest);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.052, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + Math.max(0.12, dur));
+      [-5, 4].forEach(function (det) {
+        var o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.detune.value = det;
+        o.connect(g); o.start(t); o.stop(t + Math.max(0.12, dur) + 0.05);
+      });
+    });
+  }
+  function synthPad(tones, t, dur) {
+    var ctx = S.ctx; if (!ctx) return;
+    var dest = jamChanDest("synth");
+    tones.forEach(function (midi) {
+      var f = freqFromMidi(midi);
+      var g = ctx.createGain();
+      var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1150; lp.Q.value = 0.3;
+      g.connect(lp); lp.connect(dest);
+      var atk = Math.min(0.6, dur * 0.3), rel = Math.min(0.7, dur * 0.3);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.040, t + atk);
+      g.gain.setValueAtTime(0.040, Math.max(t + atk, t + dur - rel));
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      [-6, 6].forEach(function (det) {
+        var o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = f; o.detune.value = det;
+        o.connect(g); o.start(t); o.stop(t + dur + 0.05);
+      });
+    });
+  }
+  function guitarPluck(midi, t, dur) {
+    var ctx = S.ctx; if (!ctx) return;
+    var f = freqFromMidi(midi);
+    var g = ctx.createGain();
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2900; lp.Q.value = 0.4;
+    g.connect(lp); lp.connect(jamChanDest("guitar"));
+    var end = t + Math.max(0.16, Math.min(0.55, dur));
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.13, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0008, end);
+    var o1 = ctx.createOscillator(); o1.type = "triangle"; o1.frequency.value = f;
+    var o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = f * 2;
+    var og2 = ctx.createGain(); og2.gain.value = 0.35;
+    o1.connect(g); o2.connect(og2); og2.connect(g);
+    o1.start(t); o1.stop(end + 0.05); o2.start(t); o2.stop(end + 0.05);
+  }
+  function harmonyNote(midi, t, dur, vel) {
+    var ctx = S.ctx; if (!ctx) return;
+    var f = freqFromMidi(midi);
+    var g = ctx.createGain();
+    g.connect(jamChanDest("vocals"));
+    var end = t + Math.max(0.2, dur);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.06);
+    g.gain.setValueAtTime(vel, Math.max(t + 0.07, end - 0.09));
+    g.gain.linearRampToValueAtTime(0, end);
+    var o1 = ctx.createOscillator(); o1.type = "triangle"; o1.frequency.value = f;
+    var o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = f; o2.detune.value = 5;
+    var og = ctx.createGain(); og.gain.value = 0.5;
+    var vib = ctx.createOscillator(); vib.frequency.value = 5.0;
+    var vibG = ctx.createGain(); vibG.gain.value = 0;
+    vibG.gain.setValueAtTime(0, t);
+    vibG.gain.linearRampToValueAtTime(f * 0.004, t + Math.min(0.3, dur * 0.5));
+    vib.connect(vibG); vibG.connect(o1.frequency); vibG.connect(o2.frequency);
+    o1.connect(g); o2.connect(og); og.connect(g);
+    o1.start(t); o1.stop(end + 0.05); o2.start(t); o2.stop(end + 0.05);
+    vib.start(t); vib.stop(end + 0.05);
+  }
+  function jamChanAudible(name) {
+    var anySolo = JAM.chanOrder.some(function (n) { return JAM.chan[n].solo; });
+    var c = JAM.chan[name];
+    if (c.mute) return false;
+    if (anySolo && !c.solo) return false;
+    return c.vol > 0.02;
+  }
+  /* Called from scheduleStep for every melody step of the playing song.
+     A.globalBeat is the step's start beat at call time. Every note below
+     comes from the song's real chords (A.chords / chordRootMidi) or its
+     real melody note (midi). */
+  function jamStep(A, t, durBeats, midi) {
+    if (!S.ctx || !S.bus || !S.bus.ch) return;
+    var song = A.song, spb = 60 / song.bpm;
+    var startBeat = A.globalBeat, endBeat = startBeat + durBeats;
+    if (JAM.blend !== "off" && jamChanAudible("vocals")) {
+      var ch0 = A.chords[Math.floor(startBeat / A.bar) % A.chords.length];
+      var hd = Math.max(0.22, durBeats * spb * 0.92);
+      harmonyNote(midi + (ch0.minor ? 3 : 4), t, hd, 0.15);
+      if (JAM.blend === "full") harmonyNote(midi + 7, t, hd, 0.10);
+    }
+    for (var hb = Math.ceil(startBeat * 2 - 1e-6) / 2; hb < endBeat - 1e-6; hb += 0.5) {
+      var bt = t + (hb - startBeat) * spb;
+      var isBeat = Math.abs(hb - Math.round(hb)) < 1e-6;
+      var bn = Math.round(hb);
+      var inBar = ((bn % A.bar) + A.bar) % A.bar;
+      var ch = A.chords[Math.floor(bn / A.bar) % A.chords.length];
+      var root = chordRootMidi(ch) + A.offset;
+      var tones = [root + 12, root + (ch.minor ? 3 : 4) + 12, root + 19];
+      if (isBeat) {
+        if (inBar === 0) {
+          if (jamChanAudible("synth")) synthPad(tones, bt, A.bar * spb * 0.98);
+          if (jamChanAudible("brass")) brassStab(tones, bt, spb * 0.42);
+        } else if (inBar === 2 && A.bar >= 4) {
+          if (jamChanAudible("brass")) brassStab(tones, bt, spb * 0.36);
+        }
+      }
+      if (jamChanAudible("guitar")) {
+        if (Math.abs(hb - startBeat) < 1e-6) guitarPluck(midi, bt, spb * 0.45);
+        else {
+          var pat = [0, 1, 2, 1];
+          var idx = ((Math.round(hb * 2) % 4) + 4) % 4;
+          guitarPluck(tones[pat[idx]], bt, spb * 0.45);
+        }
+      }
+    }
+  }
+
+  /* ---------- shared UI helpers ---------- */
+  function jamRMS(an) {
+    if (!an) return 0;
+    var buf = an._jb || (an._jb = new Float32Array(an.fftSize));
+    an.getFloatTimeDomainData(buf);
+    var s = 0;
+    for (var i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+    return Math.sqrt(s / buf.length);
+  }
+  function jamDb(r) { return r <= 0.0004 ? "—" : (20 * Math.log10(r)).toFixed(0) + " dB"; }
+  function jamDrag(elm, onMove) {
+    elm.addEventListener("pointerdown", function (e) {
+      try { elm.setPointerCapture(e.pointerId); } catch (err) {}
+      onMove(e);
+      var mv = function (ev) { onMove(ev); };
+      var up = function () {
+        elm.removeEventListener("pointermove", mv);
+        elm.removeEventListener("pointerup", up);
+        elm.removeEventListener("pointercancel", up);
+      };
+      elm.addEventListener("pointermove", mv);
+      elm.addEventListener("pointerup", up);
+      elm.addEventListener("pointercancel", up);
+      e.preventDefault();
+    });
+  }
+  function jamSyncState() {
+    if (S.follow && !S.follow.fromPlay) return ["SYNCED", false];
+    if (S.accomp) return ["SYNCED", false];
+    if (S.mode === "live") {
+      if (S.guessStart && (performance.now() - S.guessStart) < 10000 && S.sungSeq.length >= 3) return ["SEARCHING…", true];
+      return ["FREE", false];
+    }
+    if (S.mode === "demo") return ["DEMO", false];
+    return ["STANDBY", false];
+  }
+
+  /* ---------- mixer UI ---------- */
+  function jamBuildChannels() {
+    J.channels.innerHTML = "";
+    JAM.chanOrder.forEach(function (name) {
+      var c = JAM.chan[name];
+      var d = document.createElement("div");
+      d.className = "jam-chan";
+      d.style.setProperty("--chc", c.color);
+      d.innerHTML =
+        '<div class="ch-name">' + c.label + '</div>' +
+        '<div class="ch-meter"><i data-meter="' + name + '"></i></div>' +
+        '<div class="jam-fader" data-fader="' + name + '"><div class="thumb"></div></div>' +
+        '<div class="ch-val" data-val="' + name + '"></div>' +
+        '<div class="jam-ms">' +
+          '<button type="button" class="mute" data-ms="mute:' + name + '">MUTE</button>' +
+          '<button type="button" class="solo" data-ms="solo:' + name + '">SOLO</button>' +
+        '</div>';
+      J.channels.appendChild(d);
+      var fader = d.querySelector(".jam-fader");
+      jamDrag(fader, function (e) {
+        var r = fader.getBoundingClientRect();
+        var v = 1 - (e.clientY - r.top) / r.height;
+        JAM.chan[name].vol = Math.max(0, Math.min(1, v));
+        jamRenderChan(name);
+        jamApplyMixer();
+      });
+      jamRenderChan(name);
+    });
+    J.channels.addEventListener("click", function (e) {
+      var b = e.target;
+      while (b && !(b.getAttribute && b.getAttribute("data-ms"))) b = b.parentElement;
+      if (!b || !b.getAttribute) return;
+      var parts = b.getAttribute("data-ms").split(":");
+      var c = JAM.chan[parts[1]];
+      if (!c) return;
+      c[parts[0]] = !c[parts[0]];
+      jamRenderChan(parts[1]);
+      jamApplyMixer();
+    });
+  }
+  function jamRenderChan(name) {
+    var c = JAM.chan[name];
+    var fader = J.channels.querySelector('[data-fader="' + name + '"]');
+    if (fader) {
+      var thumb = fader.querySelector(".thumb");
+      var h = fader.clientHeight || 130;
+      thumb.style.top = ((1 - c.vol) * (h - 22)) + "px";
+    }
+    var val = J.channels.querySelector('[data-val="' + name + '"]');
+    if (val) val.textContent = Math.round(c.vol * 100) + "%";
+    var mb = J.channels.querySelector('[data-ms="mute:' + name + '"]');
+    var sb = J.channels.querySelector('[data-ms="solo:' + name + '"]');
+    if (mb) mb.classList.toggle("on", c.mute);
+    if (sb) sb.classList.toggle("on", c.solo);
+  }
+  function jamRenderMaster() {
+    var f = J.masterFader, thumb = f.querySelector(".thumb");
+    var w = f.clientWidth || 200;
+    thumb.style.left = (4 + JAM.masterVol * (w - 30)) + "px";
+    J.masterVal.textContent = Math.round(JAM.masterVol * 100) + "%";
+  }
+
+  /* ---------- library UI ---------- */
+  function jamBuildCatMap() {
+    JAM.catMap = {};
+    LIBRARY.forEach(function (s) { JAM.catMap[s.id] = s.owner ? "Your library" : "Starter library"; });
+    if (FL.index && FL.catSongs) {
+      FL.index.cats.forEach(function (meta) {
+        (FL.catSongs[meta.file] || []).forEach(function (s) { JAM.catMap[s.id] = meta.n; });
+      });
+    }
+  }
+  function jamCatName(song) { return (JAM.catMap && JAM.catMap[song.id]) || (song.owner ? "Your library" : "Starter library"); }
+  function jamBuildCatOptions() {
+    jamBuildCatMap();
+    var seen = {}, names = [];
+    LIBRARY.forEach(function (s) {
+      var n = jamCatName(s);
+      if (!seen[n]) { seen[n] = true; names.push(n); }
+    });
+    var cur = J.catFilter.value;
+    J.catFilter.innerHTML = '<option value="">All categories</option>' + names.map(function (n) {
+      return '<option' + (n === cur ? " selected" : "") + '>' + escHtml(n) + "</option>";
+    }).join("");
+  }
+  function jamRenderList() {
+    jamBuildCatMap();
+    var q = (J.search.value || "").trim().toLowerCase();
+    var cat = J.catFilter.value || "";
+    var matches = LIBRARY.filter(function (s) {
+      if (cat && jamCatName(s) !== cat) return false;
+      if (q && s.title.toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    var CAP = 150;
+    var html = "";
+    matches.slice(0, CAP).forEach(function (s) {
+      var sel = JAM.sel && JAM.sel.id === s.id;
+      var playing = S.playSong && S.playSong.id === s.id;
+      html += '<div class="jam-song' + (sel ? " sel" : "") + (playing ? " playing" : "") + '" data-id="' + s.id + '">' +
+        '<div class="t"><b>' + escHtml(s.title) + "</b><small>" +
+        escHtml(jamCatName(s)) + " · " + escHtml(keyChipText(s)) + " · ♩ = " + s.bpm + " · " + s.notes.length + " notes" +
+        "</small></div>" +
+        '<button class="mini" type="button" data-act="add" title="Add to the playlist you are building">+</button>' +
+        '<button class="mini play" type="button" data-act="play">▶ Play</button>' +
+      "</div>";
+    });
+    J.songList.innerHTML = html || '<p class="jam-note-txt">No songs match — try a different search.</p>';
+    J.listNote.textContent = matches.length > CAP
+      ? "Showing the first " + CAP + " of " + fmtNum(matches.length) + " matches — type more of the name to narrow it down."
+      : fmtNum(matches.length) + (matches.length === 1 ? " song" : " songs") + " shown.";
+    J.libCount.textContent = FL.total
+      ? fmtNum(FL.loaded) + " of " + fmtNum(FL.total) + " of your Drive songs are in this library" + (FL.state === "done" ? " — fully loaded, works offline." : ".")
+      : LIBRARY.length + " songs in the library.";
+    var ic = el("jamImportCount");
+    if (ic) ic.textContent = FL.total ? fmtNum(FL.total) : String(LIBRARY.length);
+  }
+  function jamSelectSong(song) {
+    JAM.sel = song;
+    JAM.selPos = -2;
+    J.nvMeta.textContent = song.title + " — " + keyChipText(song) + " · ♩ = " + song.bpm +
+      " · " + song.notes.length + " notes · Chords: " + song.chords;
+    J.notes.innerHTML = song.notes.map(function (m, i) {
+      return '<span class="nv-note" data-i="' + i + '">' + noteName(m) + "</span>";
+    }).join("");
+    var rows = J.songList.querySelectorAll(".jam-song");
+    for (var i = 0; i < rows.length; i++) rows[i].classList.toggle("sel", rows[i].getAttribute("data-id") === song.id);
+  }
+  function jamCurrentPos() {
+    if (!JAM.sel) return -1;
+    if (S.follow && S.follow.song && S.follow.song.id === JAM.sel.id) return S.follow.pos;
+    if (S.accomp && S.accomp.song.id === JAM.sel.id) return Math.min(S.accomp.step, JAM.sel.notes.length - 1);
+    return -1;
+  }
+  function jamQueue() {
+    if (!JAM.queue) { JAM.queue = LIBRARY.slice(); JAM.queueName = "All songs"; }
+    return JAM.queue;
+  }
+  function jamPlayAt(idx) {
+    var q = jamQueue();
+    if (!q.length) return;
+    JAM.qpos = ((idx % q.length) + q.length) % q.length;
+    var song = q[JAM.qpos];
+    if (S.mode === "demo") stopDemo(false);
+    else if (S.mode === "live") stopLive();
+    jamSelectSong(song);
+    startDemo(song);
+    J.playlistName.textContent = JAM.queueName;
+  }
+  function jamPlaySong(song) {
+    var q = jamQueue();
+    var idx = q.indexOf(song);
+    if (idx < 0) {
+      JAM.queue = LIBRARY.slice(); JAM.queueName = "All songs";
+      idx = JAM.queue.indexOf(song);
+    }
+    jamPlayAt(idx);
+  }
+  function jamPlayPause() {
+    if (S.mode === "demo") { stopDemo(false); return; }
+    if (JAM.sel) { jamPlaySong(JAM.sel); return; }
+    jamPlayAt(Math.max(0, JAM.qpos));
+  }
+
+  /* ---------- playlists (saved on this device) ---------- */
+  var JAM_PL_KEY = "singtogether.playlists.v1";
+  function jamLoadPlaylists() {
+    try { return JSON.parse(localStorage.getItem(JAM_PL_KEY)) || []; } catch (e) { return []; }
+  }
+  function jamSavePlaylists(pls) {
+    try { localStorage.setItem(JAM_PL_KEY, JSON.stringify(pls)); } catch (e) {}
+  }
+  function jamRenderDraft() {
+    if (!JAM.draft.length) { J.plDraft.textContent = "Building: (empty) — tap + on songs to add them."; return; }
+    var titles = JAM.draft.map(function (id) {
+      var s = findSongById(id);
+      return s ? s.title : id;
+    });
+    J.plDraft.textContent = "Building: " + JAM.draft.length + (JAM.draft.length === 1 ? " song" : " songs") + " — " +
+      titles.slice(0, 4).join(", ") + (titles.length > 4 ? "…" : "");
+  }
+  function jamRenderPlaylists() {
+    var pls = jamLoadPlaylists();
+    if (!pls.length) { J.plList.innerHTML = '<p class="jam-note-txt">No saved playlists yet.</p>'; return; }
+    J.plList.innerHTML = "";
+    pls.forEach(function (pl, i) {
+      var d = document.createElement("div");
+      d.className = "jam-pl-item";
+      d.innerHTML = '<div class="t"><b>' + escHtml(pl.name) + "</b><br><small style='color:#9a9aad'>" + pl.ids.length + " songs</small></div>";
+      var use = document.createElement("button");
+      use.className = "jam-btn"; use.type = "button"; use.textContent = "Use";
+      use.addEventListener("click", function () {
+        var songs = [];
+        pl.ids.forEach(function (id) { var s = findSongById(id); if (s) songs.push(s); });
+        if (songs.length) {
+          JAM.queue = songs; JAM.queueName = pl.name; JAM.qpos = -1;
+          J.playlistName.textContent = pl.name;
+          jamSelectSong(songs[0]);
+        }
+      });
+      var del = document.createElement("button");
+      del.className = "jam-btn"; del.type = "button"; del.textContent = "✕";
+      del.addEventListener("click", function () {
+        var all = jamLoadPlaylists();
+        all.splice(i, 1);
+        jamSavePlaylists(all);
+        jamRenderPlaylists();
+      });
+      d.appendChild(use); d.appendChild(del);
+      J.plList.appendChild(d);
+    });
+  }
+
+  /* ---------- FX UI ---------- */
+  function jamBindPad(padEl, obj, xEl, yEl) {
+    var puck = padEl.querySelector(".xy-puck");
+    function render() {
+      puck.style.left = (obj.x * 100) + "%";
+      puck.style.top = ((1 - obj.y) * 100) + "%";
+      xEl.textContent = Math.round(obj.x * 100);
+      yEl.textContent = Math.round(obj.y * 100);
+    }
+    jamDrag(padEl, function (e) {
+      var r = padEl.getBoundingClientRect();
+      obj.x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      obj.y = Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height));
+      render();
+      jamApplyFx();
+    });
+    render();
+  }
+  function jamBindKnob(knobEl, key) {
+    var ind = knobEl.querySelector("i");
+    var valEl = document.querySelector('[data-macro-val="' + key + '"]');
+    function render() {
+      var v = JAM.macros[key];
+      ind.style.transform = "rotate(" + (-135 + v * 270) + "deg)";
+      if (valEl) valEl.textContent = Math.round(v * 100) + "%";
+    }
+    knobEl.addEventListener("pointerdown", function (e) {
+      try { knobEl.setPointerCapture(e.pointerId); } catch (err) {}
+      var startY = e.clientY, startV = JAM.macros[key];
+      var mv = function (ev) {
+        JAM.macros[key] = Math.max(0, Math.min(1, startV + (startY - ev.clientY) / 140));
+        render();
+        jamApplyFx();
+      };
+      var up = function () {
+        knobEl.removeEventListener("pointermove", mv);
+        knobEl.removeEventListener("pointerup", up);
+        knobEl.removeEventListener("pointercancel", up);
+      };
+      knobEl.addEventListener("pointermove", mv);
+      knobEl.addEventListener("pointerup", up);
+      knobEl.addEventListener("pointercancel", up);
+      e.preventDefault();
+    });
+    render();
+  }
+
+  /* ---------- recording ---------- */
+  function jamEnsureMicTap() {
+    if (!S.ctx || !S.micStream) return;
+    if (JAM.micTap && JAM.micTap.stream === S.micStream) return;
+    if (JAM.micTap) { try { JAM.micTap.src.disconnect(); } catch (e) {} JAM.micTap = null; }
+    try {
+      var src = S.ctx.createMediaStreamSource(S.micStream);
+      var an = S.ctx.createAnalyser(); an.fftSize = 2048;
+      src.connect(an);
+      JAM.micTap = { stream: S.micStream, src: src, an: an, toRec: false };
+      if (JAM.rec.dest && JAM.rec.armed) { src.connect(JAM.rec.dest); JAM.micTap.toRec = true; }
+    } catch (e) {}
+  }
+  function jamFmtHMS(ms) {
+    var s = Math.floor(ms / 1000);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return p(h) + ":" + p(m) + ":" + p(ss);
+  }
+  function jamRecUi() {
+    J.recArm.classList.toggle("armed", JAM.rec.armed);
+    J.recArm.textContent = JAM.rec.armed ? "ARMED" : "ARM";
+    J.recGo.disabled = !JAM.rec.armed && !JAM.rec.recording;
+    J.recGo.classList.toggle("recording", JAM.rec.recording);
+    J.recGo.textContent = JAM.rec.recording ? "STOP" : "REC";
+    if (!JAM.rec.recording) J.recTime.textContent = "00:00:00";
+  }
+  function jamRecFinish() {
+    var R = JAM.rec;
+    var blob = new Blob(R.chunks, { type: (R.mr && R.mr.mimeType) || "audio/webm" });
+    R.chunks = [];
+    if (!blob.size) { jamRecUi(); return; }
+    R.count++;
+    var url = URL.createObjectURL(blob);
+    var title = S.playSong ? S.playSong.title : (S.follow ? S.follow.song.title : "Free session");
+    var ph = J.recList.querySelector("p.jam-note-txt");
+    if (ph && R.count === 1) ph.remove();
+    var d = document.createElement("div");
+    d.className = "rec-item";
+    var dur = jamFmtHMS(performance.now() - R.startedAt);
+    d.innerHTML = "<b>Jam take " + R.count + "</b> · " + escHtml(title) + " · " + dur + " · " +
+      Math.max(1, Math.round(blob.size / 1024)) + ' KB · <a href="' + url + '" download="jam-take-' + R.count + '.webm">Download</a>';
+    var au = document.createElement("audio");
+    au.controls = true; au.src = url;
+    d.appendChild(au);
+    J.recList.insertBefore(d, J.recList.firstChild);
+    jamRecUi();
+  }
+
+  /* ---------- periodic UI tick ---------- */
+  function jamUiTick() {
+    jamStutterSync();
+    if (!JAM.open) return;
+    JAM._tick++;
+    var fx = S.bus && S.bus.fx;
+    // glitch bursts: short real drop-outs on the master chain
+    if (fx && S.accomp && JAM.macros.glitch > 0.05 && Math.random() < JAM.macros.glitch * 0.45) {
+      var gt = S.ctx.currentTime;
+      fx.glit.gain.cancelScheduledValues(gt);
+      fx.glit.gain.setValueAtTime(0.04, gt);
+      fx.glit.gain.setTargetAtTime(1, gt + 0.03 + Math.random() * 0.07, 0.006);
+    }
+    // channel + master meters (real analysers)
+    if (S.bus && S.bus.chAn) {
+      JAM.chanOrder.forEach(function (n) {
+        var mEl = J.channels.querySelector('[data-meter="' + n + '"]');
+        if (mEl) mEl.style.height = Math.min(100, jamRMS(S.bus.chAn[n]) * 300) + "%";
+      });
+      var out = jamRMS(S.bus.outAn);
+      J.vu.style.width = Math.min(100, out * 240) + "%";
+      J.outMeter.style.width = Math.min(100, out * 240) + "%";
+      J.outDb.textContent = jamDb(out);
+      // spectrum (real master analyser)
+      var c = J.spec;
+      if (c && S.bus.outAn) {
+        var g2 = c.getContext("2d"), W = c.width, H = c.height;
+        var data = J.specData || (J.specData = new Uint8Array(S.bus.outAn.frequencyBinCount));
+        S.bus.outAn.getByteFrequencyData(data);
+        g2.clearRect(0, 0, W, H);
+        var bars = 36, bw = W / bars;
+        g2.fillStyle = "#00ffcc";
+        for (var i = 0; i < bars; i++) {
+          var v = data[Math.floor(i * data.length / bars * 0.8)] / 255;
+          g2.fillRect(i * bw + 1, H - v * H, Math.max(1, bw - 2), v * H);
+        }
+      }
+    }
+    jamEnsureMicTap();
+    var inR = JAM.micTap && S.micStream ? jamRMS(JAM.micTap.an) : 0;
+    J.inMeter.style.width = Math.min(100, inR * 240) + "%";
+    J.inDb.textContent = S.micStream ? jamDb(inR) : "mic off";
+    // session / sync
+    var ss = jamSyncState();
+    J.sync.textContent = ss[0];
+    J.sync.style.color = ss[1] ? "#ffcc00" : "";
+    J.sync2.textContent = ss[0];
+    J.sessName.textContent = S.playSong ? S.playSong.title : (S.follow ? S.follow.song.title : (S.mode === "live" ? "Free singing" : "Free session"));
+    J.bpm.textContent = S.accomp ? S.accomp.song.bpm : (S.playSong ? S.playSong.bpm : "—");
+    J.nowPlaying.textContent = S.playSong ? S.playSong.title : (S.follow ? S.follow.song.title + " (following you)" : "—");
+    var q = jamQueue();
+    J.nextUp.textContent = q.length && JAM.qpos >= 0 ? q[(JAM.qpos + 1) % q.length].title : (q.length ? q[0].title : "—");
+    J.playlistName.textContent = JAM.queueName;
+    J.playPause.textContent = S.mode === "demo" ? "⏸ Pause" : "▶ Play";
+    // library load progress
+    if (FL.loaded !== JAM._flLoaded) {
+      JAM._flLoaded = FL.loaded;
+      jamBuildCatOptions();
+      if (JAM.tab === "library") jamRenderList();
+    }
+    // notes viewer highlight
+    var pos = jamCurrentPos();
+    if (pos !== JAM.selPos) {
+      var prev = J.notes.querySelector(".nv-note.now");
+      if (prev) prev.classList.remove("now");
+      JAM.selPos = pos;
+      if (pos >= 0 && JAM.sel) {
+        var chip = J.notes.querySelector('[data-i="' + pos + '"]');
+        if (chip) {
+          chip.classList.add("now");
+          var cr = J.notes.getBoundingClientRect(), nr = chip.getBoundingClientRect();
+          J.notes.scrollTop += (nr.top - cr.top) - J.notes.clientHeight / 2 + nr.height / 2;
+        }
+      }
+    }
+    // system tab
+    J.sr.textContent = S.ctx ? (S.ctx.sampleRate / 1000).toFixed(1) + " kHz" : "—";
+    J.lat.textContent = !S.ctx ? "—" :
+      (typeof S.ctx.outputLatency === "number" ? (S.ctx.outputLatency * 1000).toFixed(1) + " ms" :
+       (typeof S.ctx.baseLatency === "number" ? (S.ctx.baseLatency * 1000).toFixed(1) + " ms (base)" : "—"));
+    J.ctxState.textContent = S.ctx ? S.ctx.state : "Not started";
+    J.stAudio.textContent = S.ctx ? S.ctx.state : "Not started";
+    J.ltAudio.className = "jam-light" + (S.ctx ? " ok" : "");
+    J.stMic.textContent = S.micStream ? "Live" : "Off";
+    J.ltMic.className = "jam-light" + (S.micStream ? " ok" : "");
+    if (FL.state === "done") { J.ltLib.className = "jam-light ok"; J.stLib.textContent = fmtNum(FL.total) + " songs loaded"; }
+    else if (FL.state === "failed") { J.ltLib.className = "jam-light"; J.stLib.textContent = "Couldn't load here"; }
+    else { J.ltLib.className = "jam-light mid"; J.stLib.textContent = "Loading… " + fmtNum(FL.loaded) + " / " + fmtNum(FL.total || 0); }
+    if (FL.state === "done") { J.ltCache.className = "jam-light ok"; J.stCache.textContent = FL.fromCache ? "On this device (from cache)" : "Saved on this device"; }
+    else if (FL.loaded > 0) { J.ltCache.className = "jam-light mid"; J.stCache.textContent = "Saving as it loads…"; }
+    else { J.ltCache.className = "jam-light"; J.stCache.textContent = "—"; }
+  }
+
+  /* ---------- init ---------- */
+  function jamInit() {
+    J.root = el("jamStation");
+    J.channels = el("jamChannels");
+    J.sync = el("jamSync"); J.sync2 = el("jamSync2");
+    J.sessName = el("jamSessName"); J.bpm = el("jamBpm");
+    J.spec = el("jamSpec");
+    J.masterFader = el("jamMasterFader"); J.masterVal = el("jamMasterVal"); J.vu = el("jamVu");
+    J.blendState = el("jamBlendState"); J.playlistName = el("jamPlaylistName");
+    J.nowPlaying = el("jamNowPlaying"); J.nextUp = el("jamNextUp");
+    J.search = el("jamSearch"); J.catFilter = el("jamCatFilter");
+    J.songList = el("jamSongList"); J.listNote = el("jamListNote"); J.libCount = el("jamLibCount");
+    J.nvMeta = el("jamNvMeta"); J.notes = el("jamNotes");
+    J.playPause = el("jamPlayPause");
+    J.plName = el("jamPlName"); J.plDraft = el("jamPlDraft"); J.plList = el("jamPlList");
+    J.inMeter = el("jamInMeter"); J.inDb = el("jamInDb");
+    J.outMeter = el("jamOutMeter"); J.outDb = el("jamOutDb");
+    J.sr = el("jamSr"); J.lat = el("jamLat"); J.ctxState = el("jamCtxState");
+    J.ltLib = el("jamLtLib"); J.stLib = el("jamStLib");
+    J.ltCache = el("jamLtCache"); J.stCache = el("jamStCache");
+    J.ltMic = el("jamLtMic"); J.stMic = el("jamStMic");
+    J.ltAudio = el("jamLtAudio"); J.stAudio = el("jamStAudio");
+    J.recArm = el("jamRecArm"); J.recGo = el("jamRecGo"); J.recTime = el("jamRecTime"); J.recList = el("jamRecList");
+    JAM.tab = "mixer";
+
+    jamBuildChannels();
+    jamRenderMaster();
+    jamDrag(J.masterFader, function (e) {
+      var r = J.masterFader.getBoundingClientRect();
+      JAM.masterVol = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      jamRenderMaster();
+      jamApplyMixer();
+    });
+
+    el("btnJam").addEventListener("click", function () {
+      JAM.open = true;
+      J.root.hidden = false;
+      document.body.style.overflow = "hidden";
+      JAM.chanOrder.forEach(jamRenderChan);
+      jamRenderMaster();
+      jamBuildCatOptions();
+      jamRenderList();
+      jamRenderPlaylists();
+      jamRenderDraft();
+    });
+    el("jamClose").addEventListener("click", function () {
+      JAM.open = false;
+      J.root.hidden = true;
+      document.body.style.overflow = "";
+    });
+    var tabs = document.querySelectorAll(".jam-tab");
+    for (var ti = 0; ti < tabs.length; ti++) {
+      tabs[ti].addEventListener("click", function () {
+        var name = this.getAttribute("data-jtab");
+        JAM.tab = name;
+        for (var k = 0; k < tabs.length; k++) tabs[k].classList.toggle("active", tabs[k] === this);
+        ["mixer", "library", "fx", "system"].forEach(function (p) {
+          el("jamPanel-" + p).classList.toggle("active", p === name);
+        });
+        if (name === "library") jamRenderList();
+        if (name === "mixer") { JAM.chanOrder.forEach(jamRenderChan); jamRenderMaster(); }
+      });
+    }
+    // vocal blend
+    el("jamBlendSeg").addEventListener("click", function (e) {
+      var b = e.target;
+      while (b && !(b.getAttribute && b.getAttribute("data-blend"))) b = b.parentElement;
+      if (!b || !b.getAttribute) return;
+      JAM.blend = b.getAttribute("data-blend");
+      var btns = this.querySelectorAll("[data-blend]");
+      for (var i = 0; i < btns.length; i++) btns[i].classList.toggle("on", btns[i] === b);
+      J.blendState.textContent = JAM.blend === "off" ? "Off" : (JAM.blend === "low" ? "Active (Low Harmony)" : "Active (Full Harmony)");
+    });
+    // library events
+    J.search.addEventListener("input", jamRenderList);
+    J.catFilter.addEventListener("change", jamRenderList);
+    el("jamImport").addEventListener("click", function () { el("jamImportNote").hidden = false; });
+    J.songList.addEventListener("click", function (e) {
+      var row = e.target;
+      while (row && !(row.classList && row.classList.contains("jam-song"))) row = row.parentElement;
+      if (!row) return;
+      var song = findSongById(row.getAttribute("data-id"));
+      if (!song) return;
+      var act = e.target.getAttribute && e.target.getAttribute("data-act");
+      if (act === "play") jamPlaySong(song);
+      else if (act === "add") {
+        if (JAM.draft.indexOf(song.id) < 0) JAM.draft.push(song.id);
+        jamRenderDraft();
+      } else jamSelectSong(song);
+    });
+    J.playPause.addEventListener("click", jamPlayPause);
+    el("jamPrev").addEventListener("click", function () { jamPlayAt(JAM.qpos - 1); });
+    el("jamNext").addEventListener("click", function () { jamPlayAt(JAM.qpos + 1); });
+    el("jamPlSave").addEventListener("click", function () {
+      if (!JAM.draft.length) return;
+      var pls = jamLoadPlaylists();
+      var name = (J.plName.value || "").trim() || ("Playlist " + (pls.length + 1));
+      pls.push({ name: name, ids: JAM.draft.slice() });
+      jamSavePlaylists(pls);
+      JAM.draft = [];
+      J.plName.value = "";
+      jamRenderDraft();
+      jamRenderPlaylists();
+    });
+    // FX
+    jamBindPad(el("jamPad1"), JAM.pad1, el("jamPad1x"), el("jamPad1y"));
+    jamBindPad(el("jamPad2"), JAM.pad2, el("jamPad2x"), el("jamPad2y"));
+    el("jamBypass1").addEventListener("click", function () {
+      JAM.fx1On = !JAM.fx1On;
+      this.classList.toggle("off", !JAM.fx1On);
+      this.textContent = JAM.fx1On ? "FX1 ACTIVE — TAP TO BYPASS" : "FX1 BYPASSED — TAP TO ACTIVATE";
+      jamApplyFx();
+    });
+    el("jamBypass2").addEventListener("click", function () {
+      JAM.fx2On = !JAM.fx2On;
+      this.classList.toggle("off", !JAM.fx2On);
+      this.textContent = JAM.fx2On ? "FX2 ACTIVE — TAP TO BYPASS" : "FX2 BYPASSED — TAP TO ACTIVATE";
+      jamApplyFx();
+    });
+    var knobs = document.querySelectorAll(".jam-knob");
+    for (var ki = 0; ki < knobs.length; ki++) jamBindKnob(knobs[ki], knobs[ki].getAttribute("data-macro"));
+    // recording
+    J.recArm.addEventListener("click", function () {
+      if (JAM.rec.recording) return;
+      if (JAM.rec.armed) { JAM.rec.armed = false; jamRecUi(); return; }
+      var ctx = ensureCtx();
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume();
+      if (!JAM.rec.dest) {
+        JAM.rec.dest = ctx.createMediaStreamDestination();
+        S.bus.master.connect(JAM.rec.dest);
+      }
+      jamEnsureMicTap();
+      if (JAM.micTap && !JAM.micTap.toRec) { JAM.micTap.src.connect(JAM.rec.dest); JAM.micTap.toRec = true; }
+      JAM.rec.armed = true;
+      jamRecUi();
+    });
+    J.recGo.addEventListener("click", function () {
+      var R = JAM.rec;
+      if (R.recording) { try { R.mr.stop(); } catch (e) {} return; }
+      if (!R.armed || !R.dest) return;
+      if (typeof MediaRecorder === "undefined") {
+        J.recTime.textContent = "N/A";
+        return;
+      }
+      R.chunks = [];
+      try { R.mr = new MediaRecorder(R.dest.stream); } catch (e) { return; }
+      R.mr.ondataavailable = function (ev) { if (ev.data && ev.data.size) R.chunks.push(ev.data); };
+      R.mr.onstop = function () {
+        R.recording = false;
+        if (R.iv) { clearInterval(R.iv); R.iv = null; }
+        jamRecFinish();
+      };
+      R.mr.start(250);
+      R.recording = true;
+      R.startedAt = performance.now();
+      R.iv = setInterval(function () { J.recTime.textContent = jamFmtHMS(performance.now() - R.startedAt); }, 250);
+      jamRecUi();
+    });
+    jamRecUi();
+    setInterval(jamUiTick, 110);
+  }
+  jamInit();
+
 })();
 </script>
   </body>
