@@ -193,6 +193,8 @@
   .pill.on{border-color:var(--acc); background:var(--accDim); box-shadow:0 0 0 1px var(--acc) inset}
   .pill.on .pt{color:var(--acc2)}
   .blendnote{margin-top:10px; font-size:12.5px; color:var(--dim)}
+  .beatline{margin-top:10px; font-size:13px; color:var(--dim)}
+  .beatline b{color:var(--gold, #7a5c1e)}
 
   /* ---------- Box 4: transport ---------- */
   .transport{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
@@ -388,7 +390,7 @@
         <button class="pill" id="pillHarmony" type="button"><span class="pt">Harmony</span><span class="ps">Adds 3rds &amp; 5ths</span></button>
         <button class="pill on" id="pillFull" type="button"><span class="pt">Full Band Blend</span><span class="ps">Full band + auto-ducking</span></button>
       </div>
-      <p class="blendnote" id="blendNote">Full Band: the whole arrangement plays, and while you sing the music eases down gently and makes room for your voice (Settings → Audio &amp; Ducking).</p>
+      <p class="blendnote" id="blendNote">Full Band: the band plays the full arrangement — Lead Melody and Harmony/Chords stay off unless you switch them on in the mixer, so your own voice carries the tune. While you sing, the music eases down gently and makes room for your voice (Settings → Audio &amp; Ducking).</p>
     </section>
 
     <!-- BOX 4 -->
@@ -419,6 +421,7 @@
           <span id="timeRead">00:00 / 00:00</span>
         </div>
       </div>
+      <p class="beatline" id="beatLine" aria-live="polite">Beat for this song: — pick a song and a beat is built from its own notes.</p>
     </section>
 
     <p class="foot">Every sound in this app is a real sampled musical instrument — Steinway grand piano, brass, steel guitar,
@@ -601,6 +604,11 @@
   function defaultSettings() {
     var ch = {};
     CHANNELS.forEach(function (c) { ch[c.id] = { inst: c.def, vol: c.vol, mute: false }; });
+    /* The owner sings the melody himself (2026-11-15): Lead Melody and
+       Harmony / Chords start OFF. Switching either on in the mixer is
+       an explicit choice — it is saved and respected from then on. */
+    ch.lead.mute = true;
+    ch.harmony.mute = true;
     return {
       /* Audio & Ducking */
       ducking: true, duckDepth: -5, eqCarve: true,
@@ -614,6 +622,40 @@
       blend: "full", tempoPct: 100, loop: false,
       channels: ch
     };
+  }
+
+  /* Settings storage version. Version 2 (2026-11-15) adds the one-time
+     migration in loadSettings(): settings saved by earlier builds had
+     Lead Melody + Harmony/Chords ON (the old default), so on the first
+     load under v2 those two channels are switched OFF — the owner's
+     standing instruction — while every other saved choice (instruments,
+     volumes, ducking, sensitivity…) is preserved exactly. The blend is
+     also reset to "full" by the migration, because a saved Solo/Harmony
+     blend only made sense while those channels were on; under v2 the
+     consistent state is Full Band with lead+harmony off. Once the app
+     has saved under v2, loadSettings never touches the mutes again —
+     an explicit un-mute in the mixer persists across reloads. */
+  var SETTINGS_VERSION = 2;
+  function loadSettings(saved, savedVersion) {
+    var d = defaultSettings();
+    if (!saved || typeof saved !== "object") return d;
+    Object.keys(d).forEach(function (k) {
+      if (k === "channels") {
+        Object.keys(d.channels).forEach(function (ch) {
+          if (saved.channels && saved.channels[ch]) {
+            if (typeof saved.channels[ch].inst === "string") d.channels[ch].inst = saved.channels[ch].inst;
+            if (typeof saved.channels[ch].vol === "number") d.channels[ch].vol = saved.channels[ch].vol;
+            if (typeof saved.channels[ch].mute === "boolean") d.channels[ch].mute = saved.channels[ch].mute;
+          }
+        });
+      } else if (saved[k] !== undefined && typeof saved[k] === typeof d[k]) d[k] = saved[k];
+    });
+    if ((savedVersion || 0) < SETTINGS_VERSION) {
+      d.channels.lead.mute = true;
+      d.channels.harmony.mute = true;
+      d.blend = "full";
+    }
+    return d;
   }
 
   /* ---------------- chord machinery (Gemini rules) ---------------- */
@@ -690,6 +732,181 @@
   }
 
   /* ==========================================================================
+     Per-song beat profile (2026-11-15). The old arranger gave EVERY song
+     the same generic beat (kick 1&3, rim 2&4, quarter hats) — the owner:
+     "the beat needs to be specialized, based on the song." So the beat
+     is now DERIVED from the song's own fingerprint, deterministically:
+
+       density      melody notes per bar;
+       syncopation  weighted share of onsets off the quarter-beat grid
+                    (a 16th off-position, x.25/x.75, counts 0.55; an
+                    offbeat 8th counts 0.3). Calibrated on the real
+                    library: straight 16th melodies land at 0.30–0.40,
+                    so the Syncopated family (≥ 0.42) is reserved for
+                    genuinely offbeat-heavy melodies;
+       accents      how many melody onsets land on each beat of the bar
+                    — the song's own strong beats, used to place and
+                    weight kick/rim hits inside every family;
+       pickup       whether the melody starts mid-bar.
+
+     Family choice, in order: 3/4 → Waltz · triplet grid → Triplet 6/8
+     Feel · slow (bpm < 90) or very sparse → Ballad · syncopation ≥ 0.42
+     → Syncopated · dense (≥ 5.5 notes/bar, or ≥ 4 at bpm ≥ 130) →
+     Driving · sparse-ish (< 3.4/bar) → Soft · otherwise Standard.
+     beatBarEvents(profile) returns one bar of {b, hit, vel} percussion
+     (b = offset in beats from the bar start); beatFillEvents(profile)
+     returns the pickup figure played in the bar right before a phrase
+     entry. Both are pure, so the library arranger and the live rolling
+     band share exactly the same machinery.
+     ========================================================================== */
+  function deriveBeatProfile(opts) {
+    opts = opts || {};
+    var notes = opts.notes || [];
+    var bpm = opts.bpm || 120;
+    var bar = opts.beatsPerBar || 4;
+    var totalBars = opts.totalBars || 0;
+    if (!totalBars) {
+      var end0 = 0;
+      notes.forEach(function (n) { end0 = Math.max(end0, n.start + (n.dur || 0)); });
+      totalBars = Math.max(1, Math.ceil(end0 / bar - 1e-9));
+    }
+    var grid = opts.grid || null;
+    if (!grid) {
+      /* Same triplet test the arranger uses, so a caller that does not
+         know the grid gets the same answer the arranger would. */
+      var trip = 0;
+      notes.forEach(function (n) {
+        var e3 = Math.abs(n.start - Math.round(n.start / (1 / 3)) * (1 / 3));
+        var e4 = Math.abs(n.start - Math.round(n.start / 0.25) * 0.25);
+        if (e3 < e4 - 0.01) trip++;
+      });
+      grid = (notes.length && trip / notes.length > 0.30) ? "triplet" : "16th";
+    }
+    var accents = [];
+    for (var b0 = 0; b0 < bar; b0++) accents.push(0);
+    var off = 0;
+    notes.forEach(function (n) {
+      var pos = ((n.start % bar) + bar) % bar;
+      var bi = Math.floor(pos + 1e-9);
+      if (bi >= bar) bi = bar - 1;
+      accents[bi] += 1;
+      var d8 = Math.abs(n.start - Math.round(n.start * 2) / 2);
+      if (d8 > 0.13) off += 0.55;
+      else if (Math.abs((n.start - Math.floor(n.start)) - 0.5) < 1e-6) off += 0.3;
+    });
+    var density = notes.length / totalBars;
+    var syncopation = notes.length ? off / notes.length : 0;
+    var strongBeats = accents.map(function (w, i) { return i; })
+      .sort(function (a, b) { return accents[b] - accents[a] || a - b; });
+    var firstPos = notes.length ? (((notes[0].start % bar) + bar) % bar) : 0;
+    var pickup = (opts.pickupBeats != null ? opts.pickupBeats : firstPos) > 0.25;
+    var family, name;
+    if (bar === 3) { family = "waltz"; name = "Waltz 3/4"; }
+    else if (grid === "triplet") { family = "triplet"; name = "Triplet 6/8 Feel"; }
+    else if (bpm < 90 || density < 1.8) { family = "ballad"; name = "Ballad"; }
+    else if (syncopation >= 0.42) { family = "syncopated"; name = "Syncopated 4/4"; }
+    else if (density >= 5.5 || (bpm >= 130 && density >= 4)) { family = "driving"; name = "Driving 4/4"; }
+    else if (density < 3.4) { family = "soft"; name = "Soft 4/4"; }
+    else { family = "standard"; name = "Standard 4/4"; }
+    return {
+      family: family, name: name, bpm: bpm, beatsPerBar: bar, grid: grid,
+      density: density, syncopation: syncopation, accents: accents,
+      strongBeats: strongBeats, pickup: pickup, totalBars: totalBars
+    };
+  }
+  function beatBarEvents(profile) {
+    var bar = profile.beatsPerBar || 4;
+    var acc = profile.accents || [];
+    var strong = profile.strongBeats || [];
+    var evs = [];
+    function P(b, hit, vel) { evs.push({ b: b, hit: hit, vel: Math.round(vel) }); }
+    var maxAcc = 1, sumAcc = 0, i;
+    for (i = 0; i < acc.length; i++) { if (acc[i] > maxAcc) maxAcc = acc[i]; sumAcc += acc[i]; }
+    var avgAcc = acc.length ? sumAcc / acc.length : 1;
+    /* Velocity bonus (0..8) for hits landing on the song's own strong beats. */
+    function boost(beat) { return 8 * ((acc[beat] || 0) / maxAcc); }
+    var sTop = strong.length ? strong[0] : 0;
+    switch (profile.family) {
+      case "ballad":
+        P(0, "kick", 64);
+        if (bar === 4) P(2, "rim", 48 + boost(2) * 0.5);
+        if (sTop !== 0 && (acc[sTop] || 0) >= 1.5 * avgAcc) P(sTop, "kick", 46);
+        for (i = 0; i < bar; i++) P(i, "hat", 36 + (i === sTop ? 6 : 0));
+        break;
+      case "waltz":
+        P(0, "kick", 70);
+        P(1, "rim", 48 + boost(1));
+        P(2, "rim", 46 + boost(2));
+        for (i = 0; i < 3; i++) P(i, "hat", 42);
+        break;
+      case "triplet":
+        P(0, "kick", 72);
+        if (sTop !== 0) P(sTop, "kick", 58 + boost(sTop) * 0.5);
+        if (bar === 4) { P(1 + 2 / 3, "rim", 52); P(3 + 2 / 3, "rim", 52); }
+        for (i = 0; i < bar * 3; i++) P(i / 3, "hat", (i % 3 === 0) ? 50 : 38);
+        break;
+      case "driving":
+        for (i = 0; i < bar; i++) P(i, "kick", 66 + boost(i) * 0.75);
+        if (bar === 4) { P(1, "rim", 56 + boost(1) * 0.5); P(3, "rim", 56 + boost(3) * 0.5); }
+        for (i = 0; i < bar * 2; i++) P(i / 2, "hat", (i % 2 === 0) ? 50 : 38);
+        break;
+      case "syncopated": {
+        P(0, "kick", 72);
+        if (sTop !== 0) P(sTop, "kick", 62 + boost(sTop) * 0.5);
+        if (profile.syncopation >= 0.5 && sTop + 0.5 < bar) P(sTop + 0.5, "kick", 52);
+        var rims = [];
+        strong.forEach(function (s) { if (s !== 0 && rims.length < 2) rims.push(s); });
+        [1, 3, 2].forEach(function (dflt) {
+          if (rims.length < 2 && rims.indexOf(dflt) < 0) rims.push(dflt);
+        });
+        rims.forEach(function (s) { P(s, "rim", 54 + boost(s) * 0.5); });
+        for (i = 0; i < bar * 2; i++) P(i / 2, "hat", (i % 2 === 0) ? 46 : 36);
+        break;
+      }
+      case "soft":
+        P(0, "kick", 64);
+        if (bar === 4) {
+          P(2, "kick", 58);
+          P(1, "rim", 47 + boost(1));
+          P(3, "rim", 47 + boost(3));
+        }
+        for (i = 0; i < bar; i++) P(i, "hat", 42 + (i === sTop ? 5 : 0));
+        break;
+      default: /* standard */
+        P(0, "kick", 70);
+        if (bar === 4) {
+          P(2, "kick", 70);
+          P(1, "rim", 50 + boost(1));
+          P(3, "rim", 50 + boost(3));
+        }
+        for (i = 0; i < bar; i++) P(i, "hat", (i === 1 || i === 3) ? 55 : 45);
+    }
+    evs.sort(function (a, b) { return a.b - b.b; });
+    return evs;
+  }
+  /* The pickup figure for the bar immediately before a phrase entry.
+     Positions are built from the song's own grid step so they always
+     land on the grid (16ths, or triplet steps on a triplet song). */
+  function beatFillEvents(profile) {
+    var bar = profile.beatsPerBar || 4;
+    var step = profile.grid === "triplet" ? 1 / 3 : 0.25;
+    if (profile.family === "ballad") {
+      return [{ b: bar - 2 * step, hit: "rim", vel: 46 }];
+    }
+    if (profile.family === "waltz") {
+      return [
+        { b: bar - 1, hit: "rim", vel: 50 },
+        { b: bar - step, hit: "rim", vel: 55 }
+      ];
+    }
+    return [
+      { b: bar - 1, hit: "kick", vel: 58 },
+      { b: bar - 2 * step, hit: "rim", vel: 52 },
+      { b: bar - step, hit: "rim", vel: 60 }
+    ];
+  }
+
+  /* ==========================================================================
      buildArrangement — the Gemini-rules backing arrangement engine.
      input: {
        notes: [{midi, start, dur}]   // start/dur in BEATS
@@ -700,7 +917,8 @@
      }
      output: {
        bars: [{i, start, len, chord}], events: [...], totalBeats, cycleBeats,
-       countInBeats, lastBar, penultRuleApplied, grid
+       countInBeats, lastBar, penultRuleApplied, grid,
+       beatProfile / beatName — this song's specialized beat (see above)
      }
      Event parts: 'lead' (melody), 'harm' (diatonic 3rd/5th above melody),
      'pad' (sustained triads, Harmony channel), 'accomp' (stabs/arpeggio,
@@ -797,6 +1015,19 @@
       var bE = barIndexAt(e.beat);
       if (Math.abs(e.beat - bE * bar) < 0.26) entryBoost[bE] = true;
     });
+    /* This song's own beat profile (2026-11-15), derived from its
+       quantized melody, and the bars that earn a fill: the bar right
+       before a phrase entry that lands on a bar line. */
+    var beatProfile = deriveBeatProfile({
+      notes: mel, bpm: bpm, beatsPerBar: bar,
+      grid: gridStep === 0.25 ? "16th" : "triplet",
+      totalBars: totalBars, pickupBeats: pickup
+    });
+    var fillBars = {};
+    entries.forEach(function (e) {
+      var bE = barIndexAt(e.beat);
+      if (Math.abs(e.beat - bE * bar) < 0.26 && bE - 1 >= 0) fillBars[bE - 1] = true;
+    });
     function restOverlapInBar(bi) {
       var bs = bi * bar, be = bs + bar, bestR = 0;
       for (var j = 1; j < mel.length; j++) {
@@ -841,7 +1072,7 @@
         });
       }
     });
-    var ballad = bpm < 90;
+    var ballad = beatProfile.family === "ballad";
     /* pad: one span per run of bars sharing a chord, re-articulated
        every ~2 s, dipping under long rests */
     var padRetrigger = Math.min(bar, Math.max(2, 2.0 / spb));
@@ -889,11 +1120,12 @@
             E(bs + 3, "accomp", { note: tn, durB: 0.35, vel: 64 });
           });
         }
-        E(bs, "perc", { hit: "kick", vel: 70 });
-        E(bs + 2, "perc", { hit: "kick", vel: 70 });
-        E(bs + 1, "perc", { hit: "rim", vel: 55 });
-        E(bs + 3, "perc", { hit: "rim", vel: 55 });
-        for (var q = 0; q < 4; q++) E(bs + q, "perc", { hit: "hat", vel: (q === 1 || q === 3) ? 55 : 45 });
+        beatBarEvents(beatProfile).forEach(function (pe) {
+          E(bs + pe.b, "perc", { hit: pe.hit, vel: pe.vel });
+        });
+        if (fillBars[b.i]) beatFillEvents(beatProfile).forEach(function (pe) {
+          E(bs + pe.b, "perc", { hit: pe.hit, vel: pe.vel });
+        });
       } else { /* 3/4 */
         E(bs, "bass", { note: rootB, durB: 1.8, vel: 95 + boost });
         E(bs + 2, "bass", { note: fifthB, durB: 0.8, vel: 75 });
@@ -901,10 +1133,12 @@
           E(bs + 1, "accomp", { note: tn, durB: 0.35, vel: 63 });
           E(bs + 2, "accomp", { note: tn, durB: 0.35, vel: 56 });
         });
-        E(bs, "perc", { hit: "kick", vel: 70 });
-        E(bs + 1, "perc", { hit: "rim", vel: 50 });
-        E(bs + 2, "perc", { hit: "rim", vel: 50 });
-        for (var q3 = 0; q3 < 3; q3++) E(bs + q3, "perc", { hit: "hat", vel: 45 });
+        beatBarEvents(beatProfile).forEach(function (pe) {
+          E(bs + pe.b, "perc", { hit: pe.hit, vel: pe.vel });
+        });
+        if (fillBars[b.i]) beatFillEvents(beatProfile).forEach(function (pe) {
+          E(bs + pe.b, "perc", { hit: pe.hit, vel: pe.vel });
+        });
       }
     });
     /* 6 — ending: tonic hit on the final bar, sustain one bar, 1.5 s fade,
@@ -930,6 +1164,7 @@
     evs.sort(function (a, b2) { return a.b - b2.b; });
     return {
       grid: gridStep === 0.25 ? "16th" : "triplet",
+      beatProfile: beatProfile, beatName: beatProfile.name,
       countInBeats: countInBeats, pickupBeats: pickup,
       bars: bars, events: evs,
       totalBeats: melodyEnd, cycleBeats: tailEnd + countInBeats,
@@ -1204,6 +1439,9 @@
     NOTE_NAMES: NOTE_NAMES, SCALES: SCALES,
     INSTRUMENTS: INSTRUMENTS, PERC_KITS: PERC_KITS, CHANNELS: CHANNELS,
     defaultSettings: defaultSettings,
+    SETTINGS_VERSION: SETTINGS_VERSION, loadSettings: loadSettings,
+    deriveBeatProfile: deriveBeatProfile,
+    beatBarEvents: beatBarEvents, beatFillEvents: beatFillEvents,
     pcOf: pcOf, median: median, pearson: pearson,
     parseKey: parseKey, keyName: keyName,
     buildTriads: buildTriads, chooseChordForBar: chooseChordForBar,
@@ -1237,30 +1475,29 @@
 
   /* ============================ settings ============================ */
   var LS_KEY = "stv4.settings.v1";
+  var LS_VER_KEY = "stv4.settings.v";
   var settings = (function () {
-    var d = C.defaultSettings();
+    var saved = null, ver = 0;
     try {
       var raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        var s = JSON.parse(raw);
-        Object.keys(d).forEach(function (k) {
-          if (k === "channels") {
-            Object.keys(d.channels).forEach(function (ch) {
-              if (s.channels && s.channels[ch]) {
-                if (typeof s.channels[ch].inst === "string") d.channels[ch].inst = s.channels[ch].inst;
-                if (typeof s.channels[ch].vol === "number") d.channels[ch].vol = s.channels[ch].vol;
-                if (typeof s.channels[ch].mute === "boolean") d.channels[ch].mute = s.channels[ch].mute;
-              }
-            });
-          } else if (s[k] !== undefined && typeof s[k] === typeof d[k]) d[k] = s[k];
-        });
-      }
+      if (raw) saved = JSON.parse(raw);
+      ver = parseInt(localStorage.getItem(LS_VER_KEY) || "0", 10) || 0;
     } catch (e) {}
-    return d;
+    /* Merge + the one-time v2 migration (Lead Melody + Harmony/Chords
+       OFF for existing users) live in the pure core: C.loadSettings. */
+    return C.loadSettings(saved, ver);
   })();
   function saveSettings() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch (e) {}
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(settings));
+      localStorage.setItem(LS_VER_KEY, String(C.SETTINGS_VERSION));
+    } catch (e) {}
   }
+  /* Persist once at startup: a one-time migration is then truly
+     one-time (the stored version is current from now on), and any
+     explicit change he makes later — e.g. un-muting Lead in the
+     mixer — is what gets saved and respected on the next load. */
+  saveSettings();
   /* Per-song stem model: a model chosen while a stem song is loaded is
      remembered for that song; otherwise the global Settings model applies. */
   function stemModelFor(songId) {
@@ -1685,12 +1922,33 @@
   }
   function buildArrangementForCurrent() {
     var s = current.song;
-    if (!s) { current.arrangement = null; current.leadEvents = []; return; }
+    if (!s) { current.arrangement = null; current.leadEvents = []; beatLabelUpdate(); return; }
     current.arrangement = C.buildArrangement({
       notes: s.notes, bpm: s.bpm, tonicPc: s.tonicPc, mode: s.mode,
       beatsPerBar: 4, countIn: settings.countIn, restsKnown: false
     });
     current.leadEvents = current.arrangement.events.filter(function (e) { return e.part === "lead"; });
+    beatLabelUpdate();
+  }
+  /* The beat is specialized per song (2026-11-15) — say which beat is
+     in force, and update it whenever the song (or the live band's
+     source) changes. Never silent. */
+  function beatLabelUpdate() {
+    var n = el("beatLine");
+    if (!n) return;
+    if (LB.rolling && RL && RL.beatProfile) {
+      n.innerHTML = "Beat for your singing: <b>" + escapeHtml(RL.beatProfile.name) + "</b> — shaped by the notes you sang.";
+      return;
+    }
+    if (current.useStem && current.song) {
+      n.textContent = "Beat for this song: the real recording stem is playing — you hear the original recording's own beat.";
+      return;
+    }
+    if (current.arrangement && current.arrangement.beatProfile) {
+      n.innerHTML = "Beat for this song: <b>" + escapeHtml(current.arrangement.beatProfile.name) + "</b> — built from this song's own notes.";
+      return;
+    }
+    n.textContent = "Beat for this song: — pick a song and a beat is built from its own notes.";
   }
   function selectSong(id) {
     var song = LIB.byId[id];
@@ -1728,6 +1986,7 @@
       ll.classList.remove("show");
       el("transportSub").textContent = "Nothing loaded";
     }
+    beatLabelUpdate();
   }
 
   /* ============================ mixer UI ============================ */
@@ -1806,14 +2065,31 @@
   /* ============================ blend ============================ */
   function setBlend(b, skipSave) {
     settings.blend = b;
-    if (!skipSave) saveSettings();
+    if (!skipSave) {
+      /* An explicit tap on Solo / Harmony is the owner asking to hear
+         those lines (they start OFF — he sings the melody himself):
+         un-mute exactly the channels that blend needs, refresh the
+         mixer so the buttons show it, and save. Full Band respects
+         the mixer mutes as they are — it never turns Lead or Harmony
+         back on by itself, and startup (skipSave) never un-mutes. */
+      var changed = false;
+      if (b === "solo" && settings.channels.lead.mute) {
+        settings.channels.lead.mute = false; changed = true;
+      }
+      if (b === "harmony") {
+        if (settings.channels.lead.mute) { settings.channels.lead.mute = false; changed = true; }
+        if (settings.channels.harmony.mute) { settings.channels.harmony.mute = false; changed = true; }
+      }
+      if (changed) { buildMixer(); applyChannelGains(); }
+      saveSettings();
+    }
     el("pillSolo").classList.toggle("on", b === "solo");
     el("pillHarmony").classList.toggle("on", b === "harmony");
     el("pillFull").classList.toggle("on", b === "full");
     el("blendNote").textContent =
       b === "solo" ? "Solo: just the lead melody line, nothing else." :
       b === "harmony" ? "Harmony: the lead melody plus soft 3rds and 5ths above it on the Harmony channel." :
-      "Full Band: the whole arrangement plays, and while you sing the music eases down gently and makes room for your voice (Settings → Audio & Ducking).";
+      "Full Band: the band plays the full arrangement — Lead Melody and Harmony/Chords stay off unless you switch them on in the mixer, so your own voice carries the tune. While you sing, the music eases down gently and makes room for your voice (Settings → Audio & Ducking).";
     if (b !== "full") { stopDucking(); releaseDuckMic(); }
     else if (PL.playing || ST.playing) maybeStartDucking();
   }
@@ -2397,6 +2673,7 @@
   function stopBand() {
     if (RL) { clearInterval(RL.timer); RL = null; stopAllVoices(); }
     LB.rolling = false;
+    beatLabelUpdate();
     LB.bandOn = false;
     if (PL.playing) stopTransport();
     syncStartBandBtn();
@@ -2406,10 +2683,35 @@
      singer just sang (the same weighted rule as the batch arranger), and
      bass / comping / pad / drums for the NEXT bar are scheduled on the
      shared clock — the band answers one bar behind, like a human player. */
-  function startRolling(key, bpm) {
+  function startRolling(key, bpm, profileOverride) {
+    /* Beat profile for the rolling band (2026-11-15): a locked library
+       song's own profile when there is one; otherwise a profile derived
+       from the singer's own detected notes + the detected tempo, so
+       the beat is specialized to what he actually sang. */
+    var prof = profileOverride || null;
+    if (!prof && LB.lockedId && LIB.byId[LB.lockedId]) {
+      var ls = LIB.byId[LB.lockedId];
+      prof = C.deriveBeatProfile({
+        notes: ls.notes, bpm: ls.bpm, beatsPerBar: 4,
+        totalBars: Math.max(1, Math.ceil((ls.totalBeats || 0) / 4))
+      });
+    }
+    if (!prof) {
+      var spbEst = 60 / bpm;
+      var bnotes = LB.notes.map(function (n) {
+        return { midi: n.midi, start: n.start / spbEst, dur: n.dur / spbEst };
+      });
+      var lastEnd = 0;
+      bnotes.forEach(function (n) { lastEnd = Math.max(lastEnd, n.start + n.dur); });
+      prof = C.deriveBeatProfile({
+        notes: bnotes, bpm: bpm, beatsPerBar: 4,
+        totalBars: Math.max(1, Math.ceil(lastEnd / 4))
+      });
+    }
     RL = {
       tonicPc: key.tonicPc, mode: key.mode, keyName: key.name,
-      baseBpm: bpm, barStarts: [], prevChord: null, timer: null, barIdx: 0
+      baseBpm: bpm, barStarts: [], prevChord: null, timer: null, barIdx: 0,
+      beatProfile: prof
     };
     LB.bandOn = true; LB.rolling = true;
     syncStartBandBtn();
@@ -2424,7 +2726,8 @@
     el("sessionTitle").textContent = "Live Band — " + key.name;
     el("metaKey").textContent = key.name;
     el("metaBpm").textContent = Math.round(bpm * settings.tempoPct / 100);
-    el("bandStatus").innerHTML = "Band is following you — key <b>" + key.name + "</b>, about <b>" + bpm + " BPM</b> from your singing. It answers one bar behind, like a real accompanist.";
+    el("bandStatus").innerHTML = "Band is following you — key <b>" + key.name + "</b>, about <b>" + bpm + " BPM</b> from your singing, with a <b>" + prof.name + "</b> beat shaped by it. It answers one bar behind, like a real accompanist.";
+    beatLabelUpdate();
     rollingTick();
   }
   function rollingTick() {
@@ -2453,13 +2756,16 @@
     var chord = C.chooseChordForBar(segs, RL.tonicPc, RL.mode, RL.prevChord, 4);
     RL.prevChord = chord;
     el("bandStatus").innerHTML = "Bar " + (k + 1) + " · chord <b>" + chord.name + "</b> · key " + RL.keyName + " — the band answers one bar behind you.";
-    rollingBarEvents(chord, bpmEff).forEach(function (ev) {
+    rollingBarEvents(chord, bpmEff, RL.beatProfile).forEach(function (ev) {
       scheduleEvent(ev, t + ev.b * spb, spb);
     });
   }
-  function rollingBarEvents(ch, bpm) {
+  function rollingBarEvents(ch, bpm, profile) {
     var evs = [];
     function E(b, part, o) { o.b = b; o.part = part; evs.push(o); }
+    /* Same per-song beat machinery as the library arranger — never the
+       old one-size-fits-all pattern. */
+    var prof = profile || C.deriveBeatProfile({ notes: [], bpm: bpm, beatsPerBar: 4, grid: "16th", totalBars: 1 });
     var rootB = 36 + ch.rootPc, fifthB = rootB + 7;
     var tones = [0, ch.third, ch.fifth].map(function (iv) {
       var t = 48 + ch.rootPc + iv; if (t > 64) t -= 12; return t;
@@ -2467,7 +2773,7 @@
     tones.forEach(function (tn) { E(0, "pad", { note: tn, durB: 3.9, vel: 36 }); });
     E(0, "bass", { note: rootB, durB: 0.9, vel: 95 });
     E(2, "bass", { note: fifthB, durB: 0.9, vel: 80 });
-    if (bpm < 90) {
+    if (prof.family === "ballad") {
       E(0, "accomp", { note: tones[0], durB: 0.9, vel: 62 });
       E(0, "accomp", { note: tones[2], durB: 0.9, vel: 62 });
       E(1, "accomp", { note: tones[1], durB: 0.8, vel: 52 });
@@ -2479,11 +2785,9 @@
         E(3, "accomp", { note: tn, durB: 0.35, vel: 64 });
       });
     }
-    E(0, "perc", { hit: "kick", vel: 70 });
-    E(2, "perc", { hit: "kick", vel: 70 });
-    E(1, "perc", { hit: "rim", vel: 55 });
-    E(3, "perc", { hit: "rim", vel: 55 });
-    for (var q = 0; q < 4; q++) E(q, "perc", { hit: "hat", vel: (q === 1 || q === 3) ? 55 : 45 });
+    C.beatBarEvents(prof).forEach(function (pe) {
+      E(pe.b, "perc", { hit: pe.hit, vel: pe.vel });
+    });
     return evs;
   }
 
