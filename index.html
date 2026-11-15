@@ -121,6 +121,9 @@
   .bigmic.listening{background:linear-gradient(180deg,#3a3f4a,#2a2e37); color:var(--txt); border-color:var(--line)}
   .pitchread{display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline; font-size:14px; color:var(--dim)}
   .pitchread .note{font-size:30px; font-weight:750; color:var(--txt); min-width:74px}
+  .pitchread .cents{font-size:14px; font-weight:650; color:var(--acc2); min-width:52px}
+  .pitchread .level{display:inline-block; width:84px; height:9px; border-radius:5px; background:#262a33; border:1px solid var(--line); overflow:hidden; vertical-align:middle}
+  .pitchread .level>span{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--acc),var(--acc2)); transition:width .07s linear}
   .pitchread .live-dot{width:10px;height:10px;border-radius:50%;background:#555d6a;display:inline-block}
   .pitchread .live-dot.on{background:var(--bad); box-shadow:0 0 9px var(--bad)}
   .notechips{display:flex; flex-wrap:wrap; gap:6px; min-height:28px}
@@ -145,7 +148,7 @@
     background:linear-gradient(180deg,var(--acc2),var(--acc)); color:#171106;
     font-size:19px; font-weight:800; letter-spacing:.2px; box-shadow:var(--shadow);
   }
-  .startband:disabled{filter:grayscale(.7) brightness(.6); cursor:not-allowed; box-shadow:none}
+  .startband.ready{box-shadow:0 0 0 2px var(--acc2) inset, var(--shadow)}
   .startband.playing{background:linear-gradient(180deg,#434957,#30343f); color:var(--txt)}
   .bandstatus{font-size:13.5px; color:var(--dim)}
   .bandstatus b{color:var(--acc2)}
@@ -353,12 +356,14 @@
           <div class="pitchread">
             <span class="live-dot" id="liveDot"></span>
             <span class="note" id="pitchNote">—</span>
+            <span class="cents" id="pitchCents"></span>
+            <span class="level" aria-hidden="true"><span id="levelFill"></span></span>
             <span id="pitchDetail">Microphone is off. Your voice is only listened to — never recorded.</span>
           </div>
           <div class="notechips" id="noteChips" aria-label="Notes you sang"></div>
           <div class="matchgrid" id="matchGrid"></div>
           <p class="bandstatus" id="bandStatus">Sing the opening phrase on your own first — the band stays silent so nothing pulls you off-key.</p>
-          <button class="startband" id="startBandBtn" type="button" disabled>▶&nbsp; Start Band</button>
+          <button class="startband" id="startBandBtn" type="button">▶&nbsp; Start Band</button>
         </div>
       </div>
     </section>
@@ -370,6 +375,7 @@
         <span class="sub">100% instruments · no voices</span>
       </div>
       <div id="mixerRows"></div>
+      <p class="blendnote" id="mixerNote" aria-live="polite"></p>
     </section>
 
     <!-- BOX 3 -->
@@ -934,80 +940,130 @@
   /* ==========================================================================
      Live note segmenter (pure). Pitch samples {t (seconds), freq (Hz),
      clarity} in — closed notes {midi, start, dur} out.
-     Rules (Prompt B): clarity gate > 0.9; a new pitch must hold ~55 ms
-     before it closes the current note (hysteresis), so vibrato — which
-     hovers around one pitch — stays a single note whose pitch is the
-     MEDIAN of its samples; silence of >= 90 ms closes a note; notes
-     shorter than 100 ms are dropped.
+
+     FRAME-VOTING design (2026-11-14 fix round). The original version gated
+     EVERY frame at clarity > 0.9 and killed the pending segment on any
+     sub-gate frame; on a real voice through a phone mic (vibrato, breathy
+     onsets, room noise) McLeod clarity oscillates roughly 0.7–0.96 inside
+     one steady note, so no note ever survived — the owner's phone test
+     heard 46 s of singing and produced zero notes. Working browser tuners
+     (see FIX-REPORT-2026-11-14.md) instead: gate frames loosely, smooth
+     with medians, and let stable stretches vote. So here:
+       - a frame with clarity >= voteGate (default 0.78) VOTES for its pitch;
+       - a weaker frame (clarity >= floorGate, default voteGate − 0.18) is a
+         BRIDGE: it holds the current note open through dropouts but casts
+         no vote; an even weaker pitched frame (>= weakFloor) still counts
+         as "something is sounding" and delays closing;
+       - anything else is silence; a note closes only after gapClose +
+         rejoinWindow of true silence, and a compatible vote inside that
+         grace window simply resumes the note — so a breathy fade landing
+         next to a dropout cannot split one sung note into two.
+     A challenger pitch replaces the current note only when it wins a vote:
+     >= winVotes votes spanning >= stableSec AND more votes than the current
+     note collected during the challenger's run (majority) — so isolated
+     octave blips and vibrato extremes can never split a note, while a real
+     note change still lands in ~80 ms. Compatibility is judged by SEMITONE
+     BUCKET (round to the nearest semitone): vibrato of ±40–50 cents swings
+     peak-to-trough by 0.8–1.0 semitones, wider than any fixed ±0.65-semitone
+     window around a running median, so distance-based matching splits
+     healthy vibrato notes in two (seed-21 regression, FIX-REPORT). Buckets
+     keep one sung note in one bucket while adjacent semitones stay cleanly
+     separate. A note's pitch is the MEDIAN of its votes (vibrato centres
+     on the true pitch). Notes need >= minDur of sounded span, >= 3 votes.
      ========================================================================== */
   function createNoteSegmenter(opts) {
     var o = opts || {};
     var minDur = o.minDur != null ? o.minDur : 0.10;
-    var gapClose = o.gapClose != null ? o.gapClose : 0.09;
+    var gapClose = o.gapClose != null ? o.gapClose : 0.13;
     var stableSec = o.stableSec != null ? o.stableSec : 0.055;
     var switchSemis = o.switchSemis != null ? o.switchSemis : 0.65;
-    var clarityGate = o.clarityGate != null ? o.clarityGate : 0.9;
+    var voteGate = o.voteGate != null ? o.voteGate : (o.clarityGate != null ? o.clarityGate : 0.78);
+    var floorGate = o.floorGate != null ? o.floorGate : Math.max(0.30, voteGate - 0.18);
+    var weakFloor = o.weakFloor != null ? o.weakFloor : Math.max(0.25, floorGate - 0.15);
+    var rejoinWindow = o.rejoinWindow != null ? o.rejoinWindow : 0.10;
+    var winVotes = o.winVotes != null ? o.winVotes : 4;
+    var minVotes = o.minVotes != null ? o.minVotes : 3;
     var minFreq = o.minFreq != null ? o.minFreq : 50;
     var maxFreq = o.maxFreq != null ? o.maxFreq : 1200;
-    var cur = null, pend = null, silenceStart = null, lastT = null, dts = [];
+    var cur = null, pend = null, lastSoundT = null, lastT = null, dts = [];
     function freqToMidi(f) { return 69 + 12 * Math.log(f / 440) / Math.LN2; }
     function segMedian(sg) { return median(sg.vals); }
-    function startSeg(t, m) { return { start: t, last: t, vals: [m] }; }
-    function addTo(sg, t, m) { sg.vals.push(m); sg.last = t; }
+    function startSeg(t, m) { return { start: t, lastVote: t, vals: [m], against: 0, bucket: Math.round(m) }; }
+    function addVote(sg, t, m) { sg.vals.push(m); sg.lastVote = t; sg.bucket = Math.round(segMedian(sg)); }
     function sampleDt() { return dts.length ? median(dts) : 0.016; }
     function closeCur(end, out) {
       if (!cur) return;
-      if (end - cur.start >= minDur) {
+      if (end - cur.start >= minDur && cur.vals.length >= minVotes) {
         out.push({ midi: Math.round(segMedian(cur)), start: cur.start, dur: end - cur.start });
       }
       cur = null;
     }
-    function compatible(sg, m) { return Math.abs(m - segMedian(sg)) <= switchSemis; }
+    function compatible(sg, m) { return Math.round(m) === sg.bucket; }
     function push(sample) {
       var out = [], t = sample.t;
       if (lastT != null && t > lastT) { dts.push(t - lastT); if (dts.length > 40) dts.shift(); }
       lastT = t;
-      var voiced = sample.freq >= minFreq && sample.freq <= maxFreq && sample.clarity > clarityGate;
-      if (!voiced) {
+      var pitched = sample.freq >= minFreq && sample.freq <= maxFreq;
+      var kind = !pitched ? "sil" : (sample.clarity >= voteGate ? "vote" : (sample.clarity >= floorGate ? "bridge" : (sample.clarity >= weakFloor ? "weak" : "sil")));
+      if (kind === "sil") {
         pend = null;
-        if (cur) {
-          if (silenceStart == null) silenceStart = t;
-          if (t - silenceStart >= gapClose) { closeCur(silenceStart, out); silenceStart = null; }
+        if (cur && lastSoundT != null && t - lastSoundT >= gapClose + rejoinWindow) {
+          closeCur(lastSoundT, out);
+          lastSoundT = null;
         }
         return out;
       }
-      if (cur && silenceStart != null) {
-        if (t - silenceStart >= gapClose) closeCur(silenceStart, out);
-        silenceStart = null;
-      }
-      var m = freqToMidi(sample.freq);
-      if (!cur) { cur = startSeg(t, m); return out; }
-      if (pend) {
-        if (compatible(cur, m)) { addTo(cur, t, m); pend = null; }
-        else if (compatible(pend, m)) {
-          addTo(pend, t, m);
-          if (pend.last - pend.start >= stableSec) { var st = pend.start; closeCur(st, out); cur = pend; pend = null; }
-        } else pend = startSeg(t, m);
+      if (kind === "weak") {
+        /* Pitched but unclear (a breathy fade): not a vote, not a bridge,
+           but proof of life — it delays closing while a note is open. */
+        if (cur) lastSoundT = t;
         return out;
       }
-      if (compatible(cur, m)) addTo(cur, t, m);
+      var gapBefore = lastSoundT != null ? t - lastSoundT : 0;
+      lastSoundT = t;
+      if (kind === "bridge") return out;   /* holds the note open, casts no vote */
+      var m = freqToMidi(sample.freq);
+      if (cur && gapBefore > gapClose && !compatible(cur, m)) {
+        /* The grace window expired on a DIFFERENT pitch: the old note is
+           really over — close it at the last sounded frame and let this
+           frame start fresh below. (A compatible vote just resumes.) */
+        closeCur(t - gapBefore, out);
+        cur = null; pend = null;
+      }
+      if (!cur) { cur = startSeg(t, m); pend = null; return out; }
+      if (pend) {
+        if (compatible(pend, m)) {
+          addVote(pend, t, m);
+          if (pend.vals.length >= winVotes && pend.lastVote - pend.start >= stableSec && pend.vals.length > pend.against) {
+            var st = pend.start;
+            closeCur(st, out);
+            cur = pend; pend = null;
+          }
+        } else if (compatible(cur, m)) {
+          addVote(cur, t, m); pend.against++;
+        } else {
+          pend = startSeg(t, m);
+        }
+        return out;
+      }
+      if (compatible(cur, m)) addVote(cur, t, m);
       else pend = startSeg(t, m);
       return out;
     }
     function flush(endT) {
       var out = [];
-      var end = silenceStart != null ? silenceStart : (endT != null ? endT : (cur ? cur.last + sampleDt() : 0));
+      var end = lastSoundT != null ? lastSoundT : (endT != null ? endT : (cur ? cur.lastVote + sampleDt() : 0));
       closeCur(end, out);
-      pend = null; silenceStart = null;
+      pend = null; lastSoundT = null;
       return out;
     }
     function openNote(at) {
-      if (!cur) return null;
-      var end = silenceStart != null ? silenceStart : at;
+      if (!cur || cur.vals.length < 2) return null;
+      var end = lastSoundT != null ? lastSoundT : at;
       if (end - cur.start < 0.05) return null;
       return { midi: Math.round(segMedian(cur)), start: cur.start, dur: end - cur.start, open: true };
     }
-    return { push: push, flush: flush, openNote: openNote };
+    return { push: push, flush: flush, openNote: openNote, gates: { voteGate: voteGate, floorGate: floorGate } };
   }
 
   /* ---------------- key & tempo detection (pure) ---------------- */
@@ -1240,6 +1296,7 @@
       LIB.cats = idx.cats || [];
       buildCatOptions();
       var chain = Promise.resolve();
+      var failedCats = [];
       LIB.cats.forEach(function (meta) {
         chain = chain.then(function () {
           return fetch("library/" + meta.file).then(function (r) { return r.json(); }).then(function (data) {
@@ -1250,13 +1307,17 @@
               LIB.matchIndex.push({ id: s.id, title: s.title, cat: s.cat, sub: s.sub, midis: s.midis, iv: C.intervalsOf(s.midis) });
             });
             el("libStatus").textContent = "Loading the song library… " + LIB.songs.length + " of " + (idx.total || 1151) + " songs";
-          }).catch(function () {});
+          }).catch(function () {
+            /* A category that fails to load must not vanish silently. */
+            failedCats.push(meta.n);
+          });
         });
       });
-      return chain;
-    }).then(function () {
+      return chain.then(function () { return failedCats; });
+    }).then(function (failedCats) {
       LIB.state = "done";
-      el("libStatus").textContent = LIB.songs.length + " songs ready — search or tap a song to load it.";
+      el("libStatus").textContent = LIB.songs.length + " songs ready — search or tap a song to load it." +
+        (failedCats && failedCats.length ? " ⚠ These categories failed to load: " + failedCats.join(", ") + " — check your connection and reload." : "");
       renderSongList();
     }).catch(function () {
       LIB.state = "failed";
@@ -1343,7 +1404,9 @@
   }
   function ensureCtx() {
     if (AC.ctx) {
-      if (AC.ctx.state === "suspended") AC.ctx.resume();
+      /* iOS leaves the context "interrupted" as well as "suspended"
+         between gestures — resume on anything that is not running. */
+      if (AC.ctx.state !== "running") AC.ctx.resume();
       return AC.ctx;
     }
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1410,6 +1473,10 @@
 
   /* ============================ instruments (smplr) ============================ */
   var INST_CACHE = {};   /* "instId@chanId" -> {id, inst, ready, failed} */
+  /* Load-result hooks, assigned by the app block (p4) so a finished or
+     FAILED sample load is announced in the mixer instead of failing
+     silently (2026-11-14 no-silent-no-op audit). */
+  var INST_OK_HOOK = null, INST_FAIL_HOOK = null;
   var sharedStorage = null;
   function smplrLib() {
     if (window.SmplrLib) return Promise.resolve(window.SmplrLib);
@@ -1444,8 +1511,17 @@
           extraGain: def.gain, notesToLoad: { notes: notes }, maxVoices: def.voices
         });
       }
-      entry.inst.ready.then(function () { entry.ready = true; }, function () { entry.failed = true; });
-    }).catch(function () { entry.failed = true; });
+      entry.inst.ready.then(function () {
+        entry.ready = true;
+        if (INST_OK_HOOK) INST_OK_HOOK(chanId, instId);
+      }, function () {
+        entry.failed = true;
+        if (INST_FAIL_HOOK) INST_FAIL_HOOK(chanId, instId);
+      });
+    }).catch(function () {
+      entry.failed = true;
+      if (INST_FAIL_HOOK) INST_FAIL_HOOK(chanId, instId);
+    });
     return entry;
   }
   function preloadMixerInstruments() {
@@ -1513,7 +1589,10 @@
       return Promise.all(Object.keys(raw).map(function (k) {
         return decodeDataUri(ctx, raw[k]).then(function (buf) { DRUMS.bufs[k] = buf; });
       }));
-    }).then(function () { DRUMS.loaded = true; }, function () { DRUMS.loaded = false; });
+    }).then(function () { DRUMS.loaded = true; }, function () {
+      DRUMS.loaded = false;
+      if (INST_FAIL_HOOK) INST_FAIL_HOOK("perc", "drums");
+    });
     return DRUMS.promise;
   }
   function playDrumBuf(kind, t, gain) {
@@ -1625,6 +1704,7 @@
     refreshLoadedUI();
     renderSongList();
     drawProgress(0, 0);
+    syncStartBandBtn();
   }
   function refreshLoadedUI() {
     var s = current.song;
@@ -1651,6 +1731,27 @@
   }
 
   /* ============================ mixer UI ============================ */
+  /* Visible feedback line for Box 2 — an instrument swap, a finished
+     load, or a FAILED load must never be silent (2026-11-14 audit). */
+  function mixerSay(msg) { var n = el("mixerNote"); if (n) n.textContent = msg; }
+  function chanDisplayName(chanId) {
+    for (var i = 0; i < C.CHANNELS.length; i++) if (C.CHANNELS[i].id === chanId) return C.CHANNELS[i].name;
+    return chanId;
+  }
+  INST_OK_HOOK = function (chanId, instId) {
+    if (!settings.channels[chanId] || settings.channels[chanId].inst !== instId) return;
+    var def = C.INSTRUMENTS[instId];
+    mixerSay(chanDisplayName(chanId) + " → " + (def ? def.label : instId) + " — ready.");
+  };
+  INST_FAIL_HOOK = function (chanId, instId) {
+    if (chanId === "perc") {
+      mixerSay("⚠ The drum samples could not be loaded — percussion stays silent until they load. Check your connection and reload the page.");
+      return;
+    }
+    if (!settings.channels[chanId] || settings.channels[chanId].inst !== instId) return;
+    var def = C.INSTRUMENTS[instId];
+    mixerSay("⚠ " + (def ? def.label : instId) + " samples failed to load — that channel is silent for now. Check your connection and pick the instrument again.");
+  };
   function syncMuteBtn(chanId, btn) {
     var m = settings.channels[chanId].mute;
     btn.classList.toggle("on", m);
@@ -1682,7 +1783,13 @@
       sel.addEventListener("change", function () {
         settings.channels[ch.id].inst = sel.value;
         saveSettings();
-        if (!ch.perc) { ensureCtx(); getInstrument(ch.id); }
+        var label = sel.options[sel.selectedIndex].text;
+        if (!ch.perc) {
+          ensureCtx(); getInstrument(ch.id);
+          mixerSay(ch.name + " → " + label + " — loading; it plays from the next note.");
+        } else {
+          mixerSay(ch.name + " → " + label + " — you'll hear it on the next beat.");
+        }
       });
       vol.addEventListener("input", function () {
         settings.channels[ch.id].vol = +vol.value;
@@ -1811,6 +1918,7 @@
     ensureCtx(); loadDrums(); preloadMixerInstruments();
     if (current.useStem) { stemPlayPause(); return; }
     if (!current.song) {
+      el("nowPlaying").textContent = "Pick a song in Box 1 first — or switch to Sing First and sing.";
       document.querySelector(".card").scrollIntoView({ behavior: "smooth" });
       el("songSearch").focus();
       return;
@@ -1912,7 +2020,12 @@
       src.start(0, ST.offset);
       ST.playing = true;
       startStemRaf(); updateTransportUI(); maybeStartDucking();
-    }).catch(function () {});
+    }).catch(function () {
+      /* Never fail silently — a stem that cannot load must say so. */
+      ST.playing = false;
+      updateTransportUI();
+      el("nowPlaying").textContent = "⚠ The recording stem could not be loaded — check your connection and press Play again.";
+    });
   }
   function stemPlayPause() { if (ST.playing) stemPause(); else stemPlay(ST.offset); }
   function stemPause() {
@@ -1974,7 +2087,14 @@
       DUCK.analyser.fftSize = 1024;
       src.connect(DUCK.analyser);
       startDuckLoop();
-    }).catch(function () { /* no mic — the music simply plays at full level */ });
+    }).catch(function () {
+      /* No mic — the music plays at full level, but say so once instead
+         of letting auto-ducking fail silently. */
+      var bn = el("blendNote");
+      if (bn && bn.textContent.indexOf("auto-ducking is off") < 0) {
+        bn.textContent += " (Microphone unavailable, so auto-ducking is off — the music plays at full level.)";
+      }
+    });
   }
   function startDuckLoop() {
     if (DUCK.timer || !DUCK.analyser || !AC.ctx) return;
@@ -2015,11 +2135,22 @@
   var LB = {
     on: false, stream: null, analyser: null, detector: null, raf: 0, lastSample: 0,
     seg: null, notes: [], startT: 0, matches: [], lockedId: null,
-    bandOn: false, rolling: false, matchTimer: 0, lastOpenMidi: -1
+    bandOn: false, rolling: false, matchTimer: 0, lastOpenMidi: -1,
+    buf: null, smooth: [], lastWake: 0
   };
   var RL = null;   /* rolling-band state */
-  function sensGate() { return 0.97 - (settings.micSens / 100) * 0.13; }
-  function sensRms() { return 0.006 + (1 - settings.micSens / 100) * 0.030; }
+  /* Sensitivity mapping (2026-11-14 fix, research-backed — see
+     FIX-REPORT-2026-11-14.md): shipping browser/iOS tuners gate McLeod
+     clarity anywhere from ~0.6 (receptive) to ~0.92 (strictest), and
+     their sensitivity sliders move the clarity gate, the bridge floor
+     and the RMS floor together. The old mapping defaulted to 0.905 and
+     demanded EVERY frame clear it — a real voice cannot, so nothing was
+     ever heard. Defaults now: vote gate 0.76, bridge floor 0.58,
+     RMS floor 0.016 at the middle (50%) sensitivity. */
+  function sensGate() { return 0.92 - (settings.micSens / 100) * 0.32; }
+  function sensFloor() { return Math.max(0.30, sensGate() - 0.18); }
+  function sensRms() { return 0.004 + (1 - settings.micSens / 100) * 0.024; }
+  function newSegmenter() { return C.createNoteSegmenter({ voteGate: sensGate(), floorGate: sensFloor() }); }
   function startListening() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       el("pitchDetail").textContent = "This browser has no microphone access.";
@@ -2032,11 +2163,19 @@
       LB.stream = stream; LB.on = true;
       var src = AC.ctx.createMediaStreamSource(stream);
       LB.analyser = AC.ctx.createAnalyser();
-      LB.analyser.fftSize = 2048;
+      LB.analyser.fftSize = 4096;   /* ~85 ms at 48 kHz: several full periods even for a low male voice — 2048 starved the McLeod detector at the bottom of the range */
       src.connect(LB.analyser);
-      try { LB.detector = window.Pitchy.PitchDetector.forFloat32Array(2048); }
+      try { LB.detector = window.Pitchy.PitchDetector.forFloat32Array(4096); }
       catch (e) { LB.detector = null; }
-      LB.seg = C.createNoteSegmenter({ clarityGate: sensGate() });
+      if (!LB.detector) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        LB.stream = null; LB.on = false;
+        el("pitchDetail").textContent = "The pitch detector could not start — reload the page and try again.";
+        return;
+      }
+      LB.buf = new Float32Array(4096);
+      LB.smooth = [];
+      LB.seg = newSegmenter();
       LB.notes = []; LB.matches = []; LB.lockedId = null;
       LB.startT = AC.ctx.currentTime;
       LB.lastOpenMidi = -1;
@@ -2064,34 +2203,65 @@
     el("micBtn").classList.remove("listening");
     el("liveDot").classList.remove("on");
     el("pitchNote").textContent = "—";
+    el("pitchCents").textContent = "";
+    el("levelFill").style.width = "0%";
   }
   function listenLoop() {
     if (!LB.on) return;
     LB.raf = requestAnimationFrame(listenLoop);
-    var now = AC.ctx.currentTime;
-    if (now - LB.lastSample < 0.016) return;
-    LB.lastSample = now;
-    if (!LB.analyser || !LB.detector || !LB.seg) return;
-    var buf = new Float32Array(2048);
+    var pnow = performance.now() / 1000;
+    if (pnow - LB.lastSample < 0.016) return;
+    LB.lastSample = pnow;
+    if (!LB.analyser || !LB.detector || !LB.seg || !LB.buf) return;
+    /* iOS suspends/interrupts the AudioContext between gestures; a frozen
+       context means a frozen analyser and a silently dead readout. Keep
+       trying to wake it — and SAY SO on screen instead of hearing nothing. */
+    var ctxRunning = !!(AC.ctx && AC.ctx.state === "running");
+    if (!ctxRunning && AC.ctx) {
+      if (pnow - LB.lastWake > 0.5) { LB.lastWake = pnow; AC.ctx.resume(); }
+      el("pitchDetail").textContent = "Audio is paused by the phone — tap anywhere on the page to wake it.";
+    }
+    var buf = LB.buf;
     LB.analyser.getFloatTimeDomainData(buf);
     var rms = 0;
     for (var i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
     rms = Math.sqrt(rms / buf.length);
+    el("levelFill").style.width = Math.min(100, Math.round(rms * 260)) + "%";
     var freq = 0, clarity = 0;
     if (rms >= sensRms()) {
       var pc = LB.detector.findPitch(buf, AC.ctx.sampleRate);
       freq = pc[0]; clarity = pc[1];
     }
-    var t = now - LB.startT;
+    var t = AC.ctx.currentTime - LB.startT;
     var closed = LB.seg.push({ t: t, freq: freq, clarity: clarity });
     for (var j = 0; j < closed.length; j++) { LB.notes.push(closed[j]); onSungNote(); }
+    /* Live readout — deliberately INDEPENDENT of the note gate: any
+       plausible voice frame (in range, over the bridge floor) feeds a
+       5-frame median, so the singer sees his note name + cents within a
+       frame or two of opening his mouth, even before a note locks in. */
+    var liveMidi = null;
+    if (freq >= 65 && freq <= 1250 && clarity >= sensFloor()) {
+      LB.smooth.push(69 + 12 * Math.log(freq / 440) / Math.LN2);
+      if (LB.smooth.length > 5) LB.smooth.shift();
+      liveMidi = C.median(LB.smooth.slice());
+    } else if (rms < sensRms() * 0.7) {
+      LB.smooth.length = 0;
+    }
     var open = LB.seg.openNote(t);
     if (open) {
       el("pitchNote").textContent = noteName(open.midi);
-      el("pitchDetail").textContent = "Hearing you… " + LB.notes.length + " notes so far";
+      if (liveMidi != null) {
+        var oc = Math.round((liveMidi - open.midi) * 100);
+        el("pitchCents").textContent = (oc > 0 ? "+" : "") + oc + "¢";
+      }
+      if (ctxRunning) el("pitchDetail").textContent = "Hearing you… " + LB.notes.length + " notes so far";
       if (open.midi !== LB.lastOpenMidi) { LB.lastOpenMidi = open.midi; renderChips(open); }
-    } else if (freq > 0 && clarity > sensGate()) {
-      el("pitchNote").textContent = noteName(Math.round(69 + 12 * Math.log(freq / 440) / Math.LN2));
+    } else if (liveMidi != null) {
+      var rm = Math.round(liveMidi);
+      var rc = Math.round((liveMidi - rm) * 100);
+      el("pitchNote").textContent = noteName(rm);
+      el("pitchCents").textContent = (rc > 0 ? "+" : "") + rc + "¢";
+      if (ctxRunning) el("pitchDetail").textContent = "Hearing you — hold the note a moment and it locks in below";
     }
   }
   function renderChips(open) {
@@ -2158,15 +2328,20 @@
   }
   function syncStartBandBtn() {
     var btn = el("startBandBtn");
+    /* 2026-11-14 fix: this button is NEVER disabled. A greyed-out button
+       that silently does nothing reads as a broken app; startBand() now
+       answers every press with music or a clear message. The "ready"
+       glow simply shows when a press will start music immediately. */
+    btn.disabled = false;
     if (LB.bandOn) {
-      btn.disabled = false;
       btn.innerHTML = "⏹  Stop Band";
       btn.classList.add("playing");
+      btn.classList.remove("ready");
       return;
     }
     btn.classList.remove("playing");
     btn.innerHTML = "▶  Start Band";
-    btn.disabled = !(LB.lockedId || LB.notes.length >= 4);
+    btn.classList.toggle("ready", !!(LB.lockedId || current.song || LB.notes.length >= 4));
   }
   function startBand() {
     if (LB.bandOn) { stopBand(); return; }
@@ -2180,12 +2355,44 @@
       startPlayback(0);
       return;
     }
-    if (LB.notes.length < 4 || !LB.seg) return;
-    var flushed = LB.seg.flush(AC.ctx.currentTime - LB.startT);
-    for (var i = 0; i < flushed.length; i++) LB.notes.push(flushed[i]);
-    var key = C.detectKey(LB.notes);
-    var bpm = C.detectTempoBpm(LB.notes);
-    startRolling(key, bpm);
+    if (current.song) {
+      /* A song is already loaded in the session (picked in the Library) —
+         the band plays THAT arrangement. The old code ignored it and the
+         button did nothing at all in exactly the owner's situation. */
+      setBlend("full");
+      LB.bandOn = true;
+      syncStartBandBtn();
+      el("bandStatus").innerHTML = "Band is in — playing <b>" + escapeHtml(current.song.title) + "</b>, the song you picked. Sing along!";
+      if (current.useStem) stemPlay(0); else startPlayback(0);
+      return;
+    }
+    if (LB.seg) {
+      var flushed = LB.seg.flush(AC.ctx.currentTime - LB.startT);
+      for (var i = 0; i < flushed.length; i++) LB.notes.push(flushed[i]);
+      if (flushed.length) {
+        renderChips(null);
+        if (settings.autoSuggest && LB.notes.length >= 6 && LIB.matchIndex.length) {
+          clearTimeout(LB.matchTimer);
+          LB.matchTimer = setTimeout(runMatch, 250);
+        }
+      }
+    }
+    if (LB.notes.length >= 4) {
+      var key = C.detectKey(LB.notes);
+      var bpm = C.detectTempoBpm(LB.notes);
+      startRolling(key, bpm);
+      return;
+    }
+    if (LB.notes.length >= 1) {
+      var key2 = C.detectKey(LB.notes);
+      startRolling(key2, 100);
+      el("bandStatus").innerHTML = "Band started in <b>" + key2.name + "</b> at about 100 BPM — keep singing and it will follow you, one bar behind.";
+      return;
+    }
+    /* Nothing heard yet — say so, unmistakably. Never a silent button. */
+    el("bandStatus").textContent = LB.on
+      ? "I haven't heard any notes yet — sing a few clear notes first (watch them appear above), then press Start Band."
+      : "First tap “Tap to start listening” and sing a few notes, then press Start Band — or pick a song in the Library and the band will play it for you.";
   }
   function stopBand() {
     if (RL) { clearInterval(RL.timer); RL = null; stopAllVoices(); }
@@ -2352,7 +2559,7 @@
       el("setMicSensVal").textContent = settings.micSens + "%";
     });
     el("setMicSens").addEventListener("change", function () {
-      if (LB.on) LB.seg = C.createNoteSegmenter({ clarityGate: sensGate() });
+      if (LB.on) { LB.seg = newSegmenter(); LB.smooth = []; }
     });
     el("setReverb").addEventListener("input", function () {
       settings.reverb = +this.value; saveSettings();
@@ -2461,10 +2668,15 @@
     });
 
     loadLibrary();
-    /* Prime audio + samples on the first touch anywhere, so Play is instant. */
-    document.addEventListener("pointerdown", function prime() {
-      ensureCtx(); preloadMixerInstruments(); loadDrums();
-    }, { once: true });
+    /* Prime audio + samples on the first touch anywhere, so Play is
+       instant. On EVERY later touch, keep the context awake — iOS
+       suspends/interrupts it between gestures, and a frozen context was
+       one of the silent-death paths in the 2026-11-14 phone test. */
+    var primed = false;
+    document.addEventListener("pointerdown", function () {
+      ensureCtx();
+      if (!primed) { primed = true; preloadMixerInstruments(); loadDrums(); }
+    });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
